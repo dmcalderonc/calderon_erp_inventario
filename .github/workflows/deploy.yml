@@ -1,4 +1,4 @@
-name: 🚀 Deploy NestJS Blog Backend API to VPS
+name: 🚀 Deploy NestJS Backend API to VPS
 
 on:
   push:
@@ -10,34 +10,40 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Copy project to VPS
-      uses: appleboy/scp-action@v0.1.3
+      uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.VPS_HOST }}
         username: calderond
         key: ${{ secrets.VPS_KEY }}
         source: "."
-        target: "/opt/posts_api"
+        target: "/home/calderond/posts_api"
 
     - name: Run deploy commands on VPS
-      uses: appleboy/ssh-action@v1.0.3
+      uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.VPS_HOST }}
         username: calderond
         key: ${{ secrets.VPS_KEY }}
         script: |
           set -e
-          cd /opt/posts_api
+          
 
-          sudo lsof -t -i:3000 | xargs -r sudo kill -9 || true
+          cd /home/calderond/posts_api
+
+
+          fuser -k 3000/tcp || true
+
 
           printf "%s" "${{ secrets.ENV_FILE }}" > .env
+
 
           npm install
           npm run build
 
+ 
           pm2 stop nestjs-posts-api || true
           pm2 delete nestjs-posts-api || true
           pm2 start dist/main.js --name nestjs-posts-api
