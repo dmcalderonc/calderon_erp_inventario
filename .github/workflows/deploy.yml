@@ -1,4 +1,4 @@
-name: 🚀 Deploy NestJS Backend API to VPS
+name: 🚀 Deploy NestJS ERP Inventory API
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
         username: calderond
         key: ${{ secrets.VPS_KEY }}
         source: "."
-        target: "/home/calderond/posts_api"
+        target: "/home/calderond/calderon-erp-inventario-api"
 
     - name: Run deploy commands on VPS
       uses: appleboy/ssh-action@master
@@ -31,9 +31,9 @@ jobs:
           set -e
           
 
-          cd /home/calderond/posts_api
+          cd /home/calderond/calderon-erp-inventario-api
 
-
+          # Liberar el puerto 3000
           fuser -k 3000/tcp || true
 
 
@@ -43,8 +43,8 @@ jobs:
           npm install
           npm run build
 
- 
-          pm2 stop nestjs-posts-api || true
-          pm2 delete nestjs-posts-api || true
-          pm2 start dist/main.js --name nestjs-posts-api
+
+          pm2 stop calderon-erp-inventario-api || true
+          pm2 delete calderon-erp-inventario-api || true
+          pm2 start dist/main.js --name calderon-erp-inventario-api
           pm2 save
