@@ -19,7 +19,7 @@ jobs:
         username: calderond
         key: ${{ secrets.VPS_KEY }}
         source: "."
-        target: "/home/calderond/calderon-erp-inventario-api"
+        target: "/home/calderond/proyecto_integrador_erp_inventario"
 
     - name: Run deploy commands on VPS
       uses: appleboy/ssh-action@master
@@ -30,20 +30,19 @@ jobs:
         script: |
           set -e
           
-
-          cd /home/calderond/calderon-erp-inventario-api
+          cd /home/calderond/proyecto_integrador_erp_inventario
 
           # Liberar el puerto 3000
           fuser -k 3000/tcp || true
 
-
+          # Crear archivo .env
           printf "%s" "${{ secrets.ENV_FILE }}" > .env
 
-
+          # Instalar y compilar
           npm install
           npm run build
 
-
+          # Reiniciar proceso de PM2
           pm2 stop calderon-erp-inventario-api || true
           pm2 delete calderon-erp-inventario-api || true
           pm2 start dist/main.js --name calderon-erp-inventario-api
