@@ -1,4 +1,4 @@
-name: 🚀 Deploy NestJS ERP API to VPS
+name: 🚀 Deploy NestJS Blog Backend API to VPS
 
 on:
   push:
@@ -10,36 +10,35 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
 
     - name: Copy project to VPS
       uses: appleboy/scp-action@v0.1.3
       with:
         host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
+        username: calderond
         key: ${{ secrets.VPS_KEY }}
         source: "."
-        target: "/home/calderond/erp-api"
+        target: "/opt/posts_api"
 
     - name: Run deploy commands on VPS
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
+        username: calderond
         key: ${{ secrets.VPS_KEY }}
         script: |
           set -e
-          cd /home/calderond/erp-api
-          
+          cd /opt/posts_api
 
           sudo lsof -t -i:3000 | xargs -r sudo kill -9 || true
 
+          printf "%s" "${{ secrets.ENV_FILE }}" > .env
 
           npm install
           npm run build
 
-
-          pm2 stop nestjs-api || true
-          pm2 delete nestjs-api || true
-          pm2 start dist/main.js --name nestjs-api
+          pm2 stop nestjs-posts-api || true
+          pm2 delete nestjs-posts-api || true
+          pm2 start dist/main.js --name nestjs-posts-api
           pm2 save
