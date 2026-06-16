@@ -1,0 +1,45 @@
+name: 🚀 Deploy NestJS ERP API to VPS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Copy project to VPS
+      uses: appleboy/scp-action@v0.1.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.VPS_KEY }}
+        source: "."
+        target: "/home/calderond/erp-api"
+
+    - name: Run deploy commands on VPS
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.VPS_KEY }}
+        script: |
+          set -e
+          cd /home/calderond/erp-api
+          
+
+          sudo lsof -t -i:3000 | xargs -r sudo kill -9 || true
+
+
+          npm install
+          npm run build
+
+
+          pm2 stop nestjs-api || true
+          pm2 delete nestjs-api || true
+          pm2 start dist/main.js --name nestjs-api
+          pm2 save
