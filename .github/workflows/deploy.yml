@@ -30,19 +30,20 @@ jobs:
         script: |
           set -e
           
+
           cd /home/calderond/proyecto_integrador_erp_inventario
 
           # Liberar el puerto 3000
           fuser -k 3000/tcp || true
 
-          # Crear archivo .env
+
           printf "%s" "${{ secrets.ENV_FILE }}" > .env
 
-          # Instalar y compilar
+
           npm install
           npm run build
 
-          # Reiniciar proceso de PM2
+          # Reiniciar proceso de PM2 con el nombre correcto
           pm2 stop calderon-erp-inventario-api || true
           pm2 delete calderon-erp-inventario-api || true
           pm2 start dist/main.js --name calderon-erp-inventario-api
