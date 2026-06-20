@@ -5,15 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from './users/users.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
-    // 1. Módulo para leer las variables del .env
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
-    // 2. Conexión a PostgreSQL (TypeORM)
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -28,8 +27,6 @@ import { AuditoriaModule } from './auditoria/auditoria.module';
         synchronize: true, 
       }),
     }),
-
-    // 3. Conexión a MongoDB (Mongoose)
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -37,10 +34,11 @@ import { AuditoriaModule } from './auditoria/auditoria.module';
         uri: configService.get<string>('MONGO_URI'),
       }),
     }),
-
-    // Módulos de nuestra aplicación
     UsersModule,
     AuditoriaModule,
   ],
+ 
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
