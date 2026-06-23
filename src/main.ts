@@ -11,13 +11,18 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('usuarios')
     .build();
-    
+
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('doc', app, document);
+  SwaggerModule.setup('doc', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+    customSiteTitle: 'Documentación API ERP',
+  });
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  
+
   console.log(`Aplicación corriendo en: http://localhost:${port}`);
   console.log(`Documentación de Swagger disponible en: http://localhost:${port}/doc`);
 }
