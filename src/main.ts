@@ -1,37 +1,32 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'; 
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const config = new DocumentBuilder()
-    .setTitle('Mi doc')
-    .setDescription('Descripción de mi doc')
+    .setTitle('ERP Inventario API')
+    .setDescription('Documentación de la API del proyecto integrador')
     .setVersion('1.0')
-    .addTag('usuarios')
+    .addBearerAuth()
     .build();
-
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('doc', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-    customSiteTitle: 'Documentación API ERP',
-  });
-  
+  SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.PORT ?? 3001;
-  await app.listen(port);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
-  await app.listen(port);
-  const server = app.getHttpServer();
-  const router = server._events.request._router;
-  const routes = router.stack.map(layer => layer.route?.path).filter(Boolean);
-  console.log('Rutas registradas:', routes);
+  app.useGlobalFilters(new AllExceptionsFilter());
+  app.enableCors();
 
-  console.log(`Aplicación corriendo en: http://localhost:${port}`);
-  console.log(`Documentación de Swagger disponible en: http://localhost:${port}/doc`);
+  await app.listen(process.env.PORT || 3000);
 }
 bootstrap();
-

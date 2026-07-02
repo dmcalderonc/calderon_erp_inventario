@@ -1,10 +1,16 @@
-// src/users/user.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-@Entity('users') // Nombre de la tabla en PostgreSQL
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  SOLICITANTE = 'SOLICITANTE',
+  BODEGUERO = 'BODEGUERO',
+  COMPRADOR = 'COMPRADOR',
+}
+
+@Entity('users') 
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id?: string;
+  id: string;
 
   @Column({ type: 'varchar', length: 150 })
   nombre?: string;
@@ -13,11 +19,11 @@ export class User {
   email?: string;
 
   @Column({ type: 'varchar' })
-  passwordHash?: string;
+  password?: string;
 
-  // Roles base para el sistema de requerimientos
-  @Column({ type: 'enum', enum: ['ADMIN', 'SOLICITANTE', 'BODEGUERO', 'COMPRADOR'], default: 'SOLICITANTE' })
-  rol?: string;
+
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.SOLICITANTE })
+  rol: UserRole;
 
   @Column({ type: 'boolean', default: true })
   estado?: boolean;
