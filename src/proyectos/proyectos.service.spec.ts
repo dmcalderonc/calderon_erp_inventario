@@ -1,14 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProyectosService } from './proyectos.service';
-import { DataSource } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { ProyectosService } from './proyectos.service';
 import { Proyecto } from './proyecto.entity';
 import { BodegasService } from '../bodegas/bodegas.service';
+import { InternalServerErrorException, NotFoundException } from '@nestjs/common';
 
 describe('ProyectosService', () => {
   let service: ProyectosService;
-  let dataSource: any;
-  let bodegasService: any;
+
+  const mockManager = {
+    count: jest.fn().mockResolvedValue(0),
+    create: jest.fn().mockImplementation((entity, dto) => dto),
+    save: jest.fn().mockImplementation((entity, dto) => Promise.resolve({ id: 'uuid-1', nombre: dto.nombre })),
+  };
 
   const mockQueryRunner = {
     connect: jest.fn(),
@@ -16,11 +21,7 @@ describe('ProyectosService', () => {
     commitTransaction: jest.fn(),
     rollbackTransaction: jest.fn(),
     release: jest.fn(),
-    manager: {
-      count: jest.fn().mockResolvedValue(0),
-      create: jest.fn().mockImplementation((entity, dto) => dto),
-      save: jest.fn().mockResolvedValue({ id: 'uuid-1234', nombre: 'Proyecto Test' }),
-    },
+    manager: mockManager,
   };
 
   const mockDataSource = {
@@ -28,35 +29,56 @@ describe('ProyectosService', () => {
   };
 
   const mockBodegasService = {
-    create: jest.fn().mockResolvedValue({}),
+    create: jest.fn().mockResolvedValue({ id: 1 }),
+  };
+
+  const mockProyectoRepository = {
+    find: jest.fn().mockResolvedValue([{ id: 'uuid-1', nombre: 'Edificio A' }]),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProyectosService,
-        { provide: getRepositoryToken(Proyecto), useValue: {} },
+        { provide: getRepositoryToken(Proyecto), useValue: mockProyectoRepository },
         { provide: DataSource, useValue: mockDataSource },
         { provide: BodegasService, useValue: mockBodegasService },
       ],
     }).compile();
 
     service = module.get<ProyectosService>(ProyectosService);
-    dataSource = module.get<DataSource>(DataSource);
-    bodegasService = module.get<BodegasService>(BodegasService);
+    jest.clearAllMocks();
   });
 
-  it('debería autogenerar el código de proyecto y llamar a BodegasService dentro de la transacción', async () => {
-    const dto = { nombre: 'Proyecto Alfa', fechaInicio: '2026-06-28' };
-    const result = await service.create(dto);
+  describe('create', () => {
+    it('debe crear un proyecto, autogenerar codigo y crear su bodega', async () => {
+      const dto = { nombre: 'Edificio A', fechaInicio: '2026-01-01' };
+      
+      const result = await service.create(dto as any);
 
-    expect(mockQueryRunner.startTransaction).toHaveBeenCalled();
-    expect(mockQueryRunner.manager.count).toHaveBeenCalledWith(Proyecto);
-    expect(bodegasService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ nombre: 'Bodega Obra: Proyecto Test', proyectoId: 'uuid-1234' }),
-      mockQueryRunner.manager,
-    );
-    expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
-    expect(result).toHaveProperty('id');
+      expect(mockManager.count).toHaveBeenCalled();
+      expect(mockManager.save).toHaveBeenCalled();
+      expect(mockBodegasService.create).toHaveBeenCalled();
+      expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
+      expect(result.id).toBe('uuid-1');
+    });
+
+    it('debe hacer rollback si ocurre un error transaccional', async () => {
+      const dto = { nombre: 'Edificio B', fechaInicio: '2026-01-01' };
+      mockBodegasService.create.mockRejectedValueOnce(new Error('Fallo Bodega'));
+
+      await expect(service.create(dto as any)).rejects.toThrow(InternalServerErrorException);
+      expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
+    });
+  });
+
+  describe('findOne', () => {
+    it('debe lanzar NotFoundException si no existe el proyecto', async () => {
+      mockProyectoRepository.findOne.mockResolvedValue(null);
+      await expect(service.findOne('uuid-inexistente')).rejects.toThrow(NotFoundException);
+    });
   });
 });

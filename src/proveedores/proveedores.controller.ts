@@ -21,7 +21,7 @@ export class ProveedoresController {
   @Get()
   @ApiOperation({ summary: 'Obtener todos los proveedores' })
   findAll() {
-    return this.findAll();
+    return this.proveedoresService.findAll();
   }
 
   @Get(':id')

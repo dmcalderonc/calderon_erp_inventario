@@ -29,6 +29,6 @@ export class CreateMovimientoDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => DetalleMovimientoDto)
+  @Type(() => DetalleMovimientoDto) 
   detalles?: DetalleMovimientoDto[];
 }
