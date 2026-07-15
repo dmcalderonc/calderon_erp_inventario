@@ -149,7 +149,7 @@ describe('MaterialesService', () => {
 
     it('debe lanzar BadRequestException si se intenta alterar el SKU', async () => {
       const materialExistente = { id: 1, sku: 'VID-0001' };
-      const dto = { sku: 'VID-9999' }; // Intento de hackear el SKU
+      const dto = { sku: 'VID-9999' }; 
 
       mockMaterialRepository.findOne.mockResolvedValue(materialExistente);
 

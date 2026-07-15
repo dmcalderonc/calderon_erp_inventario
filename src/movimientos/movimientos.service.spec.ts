@@ -68,14 +68,14 @@ describe('MovimientosService', () => {
       };
       
       const mockSavedMovimiento = { id: 'mov1', tipo: TipoMovimiento.INGRESO };
-      mockManager.create.mockReturnValueOnce(mockSavedMovimiento); // Para movimiento
-      mockManager.save.mockResolvedValueOnce(mockSavedMovimiento); // Guarda movimiento
+      mockManager.create.mockReturnValueOnce(mockSavedMovimiento); 
+      mockManager.save.mockResolvedValueOnce(mockSavedMovimiento); 
       
-      mockManager.create.mockReturnValueOnce({ materialId: 'mat1', cantidad: 10 }); // Para detalle
-      mockManager.save.mockResolvedValueOnce({}); // Guarda detalle
+      mockManager.create.mockReturnValueOnce({ materialId: 'mat1', cantidad: 10 }); 
+      mockManager.save.mockResolvedValueOnce({}); 
       
-      mockManager.findOne.mockResolvedValueOnce({ id: 1, cantidad_disponible: 5 }); // Encuentra stock destino
-      mockManager.save.mockResolvedValueOnce({}); // Actualiza stock
+      mockManager.findOne.mockResolvedValueOnce({ id: 1, cantidad_disponible: 5 }); 
+      mockManager.save.mockResolvedValueOnce({}); 
 
       const result = await service.registrarMovimiento(dto as any, 'user1');
 

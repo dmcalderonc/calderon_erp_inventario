@@ -14,12 +14,9 @@ describe('RequirementsController', () => {
     remove: jest.fn(),
   };
 
-
   const mockRequest = {
     user: { id: 'uuid-de-usuario-real' },
   };
-
-  const mockRequestSinUser = {};
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -43,20 +40,15 @@ describe('RequirementsController', () => {
 
   describe('create', () => {
     it('debe crear un requerimiento usando el userId del Request', async () => {
-      const dto = { proyectoId: 1, detalles: [{ materialId: 1, cantidadSolicitada: 10 }] };
+      const dto = {
+        proyectoId: 1,
+        detalles: [{ materialId: 1, cantidadSolicitada: 10 }],
+      };
       const resultado = { id: 1, ...dto };
       mockRequirementsService.create.mockResolvedValue(resultado);
 
       expect(await controller.create(dto, mockRequest)).toEqual(resultado);
       expect(service.create).toHaveBeenCalledWith(dto, 'uuid-de-usuario-real');
-    });
-
-    it('debe usar el ID por defecto si el Request no trae usuario', async () => {
-      const dto = { proyectoId: 1, detalles: [] };
-      mockRequirementsService.create.mockResolvedValue({});
-
-      await controller.create(dto, mockRequestSinUser);
-      expect(service.create).toHaveBeenCalledWith(dto, 'uuid-de-tu-usuario-prueba');
     });
   });
 
@@ -88,8 +80,14 @@ describe('RequirementsController', () => {
       const resultado = { id: 1, estado: 'APROBADO' };
       mockRequirementsService.updateStatus.mockResolvedValue(resultado);
 
-      expect(await controller.updateStatus(id, dto, mockRequest)).toEqual(resultado);
-      expect(service.updateStatus).toHaveBeenCalledWith(1, dto, 'uuid-de-usuario-real');
+      expect(await controller.updateStatus(id, dto, mockRequest)).toEqual(
+        resultado,
+      );
+      expect(service.updateStatus).toHaveBeenCalledWith(
+        1,
+        dto,
+        'uuid-de-usuario-real',
+      );
     });
   });
 

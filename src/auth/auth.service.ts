@@ -18,19 +18,27 @@ export class AuthService {
 
     const user = await this.usersService.findByEmailForLogin(loginDto.email);
 
+
+    console.log('--- [DEBUG 1] USUARIO ENCONTRADO EN BD ---', user);
+
     if (!user || !user.password) {
+      console.log('--- [DEBUG 2] ERROR: El usuario no existe o la contraseña viene vacía/nula ---');
       throw new UnauthorizedException('Credenciales incorrectas');
     }
+
 
     let isPasswordValid = false;
     try {
       isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
+      console.log('--- [DEBUG 3] ¿La contraseña coincide en bcrypt?:', isPasswordValid);
     } catch (error) {
+      console.log('--- [DEBUG 4] ERROR al comparar con bcrypt:', error.message);
       isPasswordValid = false;
     }
 
     if (!isPasswordValid) {
       isPasswordValid = loginDto.password === user.password;
+      console.log('--- [DEBUG 5] ¿La contraseña coincide en texto plano?:', isPasswordValid);
     }
 
     if (!isPasswordValid) {
@@ -39,9 +47,11 @@ export class AuthService {
 
     const userAny = user as any;
     if (userAny.is_active !== undefined && !userAny.is_active) {
+      console.log('--- [DEBUG 6] ERROR: is_active está en false ---');
       throw new UnauthorizedException('El usuario está desactivado');
     }
     if (userAny.estado !== undefined && !userAny.estado) {
+      console.log('--- [DEBUG 7] ERROR: estado está en false ---');
       throw new UnauthorizedException('El usuario está desactivado');
     }
 

@@ -22,7 +22,7 @@ export class RequirementsService {
   try {
     const requirement = this.reqRepository.create({
       proyectoId: createDto.proyectoId,
-      usuarioSolicitanteId: userId, // <-- ¿Este ID existe realmente en tu DB?
+      usuarioSolicitanteId: userId, 
       estado: RequirementStatus.PENDIENTE,
       detalles: createDto.detalles.map(detalle => ({
         materialId: detalle.materialId,
@@ -32,7 +32,6 @@ export class RequirementsService {
     
     return await this.reqRepository.save(requirement);
   } catch (error) {
-    // ESTO ES LO MÁS IMPORTANTE:
     console.log('--- ERROR DETALLADO ---');
     console.log(error); 
     throw new InternalServerErrorException(error.message);

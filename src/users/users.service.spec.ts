@@ -55,7 +55,7 @@ describe('UsersService', () => {
 
     it('debe lanzar BadRequestException si el email ya está registrado', async () => {
       const dto = { username: 'existente', email: 'existe@test.com', password: '123', rol: 'USER' };
-      mockUserRepository.findOne.mockResolvedValue({ id: 1, email: 'existe@test.com' }); // Simula que ya existe
+      mockUserRepository.findOne.mockResolvedValue({ id: 1, email: 'existe@test.com' }); 
 
       await expect(service.create(dto)).rejects.toThrow(BadRequestException);
       await expect(service.create(dto)).rejects.toThrow('El correo electrónico ya se encuentra registrado.');

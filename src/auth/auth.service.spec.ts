@@ -5,7 +5,6 @@ import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
-// Mockeamos la librería de forma robusta interceptando su inicialización
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
 }));
@@ -51,7 +50,7 @@ describe('AuthService', () => {
   it('debe lanzar UnauthorizedException si la contraseña es incorrecta', async () => {
     mockUsersService.findByEmailForLogin.mockResolvedValueOnce({ password: 'hashedpassword' });
     
-    // Inyectamos el valor falso a la simulación nativa de bcrypt
+
     (bcrypt.compare as jest.Mock).mockResolvedValueOnce(false);
     
     await expect(service.login({ email: 'test@test.com', password: 'wrong' })).rejects.toThrow(UnauthorizedException);
@@ -61,7 +60,7 @@ describe('AuthService', () => {
     const mockUser = { id: '1', email: 'test@test.com', password: 'hashedpassword', nombre: 'Test', rol: 'ADMIN', is_active: true };
     mockUsersService.findByEmailForLogin.mockResolvedValueOnce(mockUser);
     
-    // Inyectamos el valor verdadero a la simulación nativa de bcrypt
+
     (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
 
     const result = await service.login({ email: 'test@test.com', password: 'correct' });

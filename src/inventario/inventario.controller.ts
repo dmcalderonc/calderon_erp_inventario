@@ -1,34 +1,54 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { InventarioService } from './inventario.service';
 import { CreateInventarioDto } from './dto/create-inventario.dto';
 import { UpdateInventarioDto } from './dto/update-inventario.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('inventario')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class InventarioController {
   constructor(private readonly inventarioService: InventarioService) {}
 
   @Post()
+  @Roles('ADMIN', 'BODEGUERO')
   create(@Body() createInventarioDto: CreateInventarioDto) {
-    console.log("¡Entró al controlador de inventario con estos datos:", createInventarioDto);
     return this.inventarioService.create(createInventarioDto);
   }
 
   @Get()
+  @Roles('ADMIN', 'BODEGUERO')
   findAll() {
     return this.inventarioService.findAll();
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'BODEGUERO')
   findOne(@Param('id') id: string) {
     return this.inventarioService.findOne(+id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateInventarioDto: UpdateInventarioDto) {
+  @Roles('ADMIN', 'BODEGUERO')
+  update(
+    @Param('id') id: string,
+    @Body() updateInventarioDto: UpdateInventarioDto,
+  ) {
     return this.inventarioService.update(+id, updateInventarioDto);
   }
 
   @Delete(':id')
+  @Roles('ADMIN')
   remove(@Param('id') id: string) {
     return this.inventarioService.remove(+id);
   }

@@ -119,9 +119,9 @@ describe('RequirementsService', () => {
         const reqExistente = { 
           id: 1, 
           estado: RequirementStatus.PENDIENTE, 
-          detalles: [{ materialId: 2, cantidadSolicitada: 15 }] // Pide 15
+          detalles: [{ materialId: 2, cantidadSolicitada: 15 }] 
         };
-        const stockInsuficiente = { cantidad_disponible: 10, cantidad_reservada: 0 }; // Hay 10
+        const stockInsuficiente = { cantidad_disponible: 10, cantidad_reservada: 0 }; 
 
         mockManager.findOne
           .mockResolvedValueOnce(reqExistente)

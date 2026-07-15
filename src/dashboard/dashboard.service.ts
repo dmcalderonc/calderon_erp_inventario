@@ -1,0 +1,82 @@
+// src/dashboard/dashboard.service.ts
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Proyecto, EstadoProyecto } from '../proyectos/proyecto.entity';
+import { Requirement, RequirementStatus } from '../requirements/entities/requirement.entity';
+import { Inventario } from '../inventario/inventario.entity';
+import { DetalleOrdenCompra } from '../compras/entities/detalle-orden-compra.entity'; 
+import { AuditoriaService } from '../auditoria/auditoria.service';
+
+@Injectable()
+export class DashboardService {
+  constructor(
+    @InjectRepository(Proyecto)
+    private readonly proyectoRepo: Repository<Proyecto>,
+
+    @InjectRepository(Requirement)
+    private readonly requirementRepo: Repository<Requirement>,
+
+    @InjectRepository(Inventario)
+    private readonly inventarioRepo: Repository<Inventario>,
+
+    private readonly auditoriaService: AuditoriaService,
+  ) {}
+
+  async obtenerKpis() {
+    try {
+
+      const proyectosActivos = await this.proyectoRepo
+        .createQueryBuilder('proyecto')
+        .where('proyecto.estado = :estado', { estado: EstadoProyecto.ACTIVO })
+        .getCount();
+
+
+      const requerimientosPendientesRaw = await this.requirementRepo.query(`
+        SELECT COUNT(*) as count 
+        FROM requerimientos 
+        WHERE estado = 'PENDIENTE'
+      `);
+      const requerimientosPendientes = parseInt(requerimientosPendientesRaw[0]?.count || '0', 10);
+
+
+      const stockQuery = await this.inventarioRepo.query(`
+        SELECT SUM(cantidad_disponible) AS "totalStock"
+        FROM stock_bodega
+      `);
+      const totalStock = parseFloat(stockQuery[0]?.totalStock || '0');
+      
+
+      const totalInventario = totalStock * 10.00;
+
+      return {
+        proyectosActivos,
+        requerimientosPendientes,
+        valorizacionTotalInventario: Number(totalInventario.toFixed(2)),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException('Error al calcular KPIs del dashboard: ' + error.message);
+    }
+  }
+
+  async obtenerAlertasStock(umbral: number) {
+    try {
+      return await this.inventarioRepo
+        .createQueryBuilder('inv')
+        .innerJoinAndSelect('inv.material', 'material')
+        .leftJoinAndSelect('inv.bodega', 'bodega')
+        .where('inv.cantidad_disponible < :umbral', { umbral })
+        .getMany();
+    } catch (error) {
+      throw new InternalServerErrorException('Error al consultar alertas de stock: ' + error.message);
+    }
+  }
+
+  async obtenerLineaTiempo() {
+    try {
+      return await this.auditoriaService.obtenerLogsRecientes();
+    } catch (error) {
+      throw new InternalServerErrorException('Error al cargar la línea de tiempo: ' + error.message);
+    }
+  }
+}

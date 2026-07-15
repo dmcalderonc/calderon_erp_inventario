@@ -21,7 +21,6 @@ export class UsersService {
       throw new BadRequestException('El correo electrónico ya se encuentra registrado.');
     }
 
-
     const newUser = this.userRepository.create({
       nombre: createUserDto.username,
       email: createUserDto.email,
@@ -31,9 +30,19 @@ export class UsersService {
 
     return await this.userRepository.save(newUser);
   }
+
+
   async findByEmailForLogin(email: string): Promise<User | null> {
     return await this.userRepository.findOne({
       where: { email },
+      select: {
+        id: true,
+        nombre: true,
+        email: true,
+        password: true,
+        rol: true,
+        estado: true,
+      },
     });
   }
 
@@ -76,9 +85,9 @@ export class UsersService {
   }
 
   async remove(id: number): Promise<any> {
-  const user = await this.findOne(id);
-  const userDeleted = { id: user.id, nombre: user.nombre };
-  await this.userRepository.remove(user);
-  return userDeleted; 
-}
+    const user = await this.findOne(id);
+    const userDeleted = { id: user.id, nombre: user.nombre };
+    await this.userRepository.remove(user);
+    return userDeleted; 
+  }
 }
