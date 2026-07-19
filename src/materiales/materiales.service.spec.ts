@@ -44,7 +44,10 @@ describe('MaterialesService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MaterialesService,
-        { provide: getRepositoryToken(Material), useValue: mockMaterialRepository },
+        {
+          provide: getRepositoryToken(Material),
+          useValue: mockMaterialRepository,
+        },
         { provide: DataSource, useValue: mockDataSource },
         { provide: AuditoriaService, useValue: mockAuditoriaService },
       ],
@@ -59,14 +62,19 @@ describe('MaterialesService', () => {
   });
 
   describe('create', () => {
-    const dto = { nombre: 'Tubo', descripcion: 'Vidrio', unidad_medida: 'Und', categoria_id: 1 };
+    const dto = {
+      nombre: 'Tubo',
+      descripcion: 'Vidrio',
+      unidad_medida: 'Und',
+      categoria_id: 1,
+    };
     const usuarioId = 99;
     const categoriaMock = { id: 1, nombre: 'Vidriería', prefijo: 'VID' };
 
     it('debe crear un material con SKU inicial si no hay materiales previos', async () => {
       mockManager.findOne.mockResolvedValueOnce(categoriaMock);
       mockManager.findOne.mockResolvedValueOnce(null);
-      
+
       const nuevoMaterial = { nombre: 'Tubo', sku: 'VID-0001' };
       mockManager.create.mockReturnValue(nuevoMaterial);
       mockManager.save.mockResolvedValue(nuevoMaterial);
@@ -81,8 +89,8 @@ describe('MaterialesService', () => {
 
     it('debe crear un material incrementando el SKU del último registro', async () => {
       mockManager.findOne.mockResolvedValueOnce(categoriaMock);
-      mockManager.findOne.mockResolvedValueOnce({ sku: 'VID-0015' }); 
-      
+      mockManager.findOne.mockResolvedValueOnce({ sku: 'VID-0015' });
+
       const nuevoMaterial = { nombre: 'Tubo', sku: 'VID-0016' };
       mockManager.create.mockReturnValue(nuevoMaterial);
       mockManager.save.mockResolvedValue(nuevoMaterial);
@@ -93,9 +101,11 @@ describe('MaterialesService', () => {
     });
 
     it('debe lanzar NotFoundException y hacer rollback si la categoría no existe', async () => {
-      mockManager.findOne.mockResolvedValueOnce(null); 
+      mockManager.findOne.mockResolvedValueOnce(null);
 
-      await expect(service.create(dto, usuarioId)).rejects.toThrow(NotFoundException);
+      await expect(service.create(dto, usuarioId)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
       expect(mockQueryRunner.release).toHaveBeenCalled();
     });
@@ -103,12 +113,16 @@ describe('MaterialesService', () => {
 
   describe('findAll', () => {
     it('debe retornar un arreglo de materiales con sus categorías', async () => {
-      const materiales = [{ id: 1, nombre: 'Tubo', categoria: { id: 1, nombre: 'Vidrio' } }];
+      const materiales = [
+        { id: 1, nombre: 'Tubo', categoria: { id: 1, nombre: 'Vidrio' } },
+      ];
       mockMaterialRepository.find.mockResolvedValue(materiales);
 
       const resultado = await service.findAll();
       expect(resultado).toEqual(materiales);
-      expect(mockMaterialRepository.find).toHaveBeenCalledWith({ relations: { categoria: true } });
+      expect(mockMaterialRepository.find).toHaveBeenCalledWith({
+        relations: { categoria: true },
+      });
     });
   });
 
@@ -143,17 +157,22 @@ describe('MaterialesService', () => {
 
       expect(resultado).toEqual(materialActualizado);
       expect(mockAuditoriaService.registrarAccion).toHaveBeenCalledWith(
-        '99', 'ACTUALIZAR_MATERIAL', 'Materiales', expect.any(Object)
+        '99',
+        'ACTUALIZAR_MATERIAL',
+        'Materiales',
+        expect.any(Object),
       );
     });
 
     it('debe lanzar BadRequestException si se intenta alterar el SKU', async () => {
       const materialExistente = { id: 1, sku: 'VID-0001' };
-      const dto = { sku: 'VID-9999' }; 
+      const dto = { sku: 'VID-9999' } as any;
 
       mockMaterialRepository.findOne.mockResolvedValue(materialExistente);
 
-      await expect(service.update(1, dto, usuarioId)).rejects.toThrow(BadRequestException);
+      await expect(service.update(1, dto, usuarioId)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -167,10 +186,15 @@ describe('MaterialesService', () => {
 
       const resultado = await service.remove(1, usuarioId);
 
-      expect(resultado).toEqual({ message: 'El material con SKU VID-0001 ha sido eliminado.' });
+      expect(resultado).toEqual({
+        message: 'El material con SKU VID-0001 ha sido eliminado.',
+      });
       expect(mockMaterialRepository.remove).toHaveBeenCalledWith(material);
       expect(mockAuditoriaService.registrarAccion).toHaveBeenCalledWith(
-        '99', 'ELIMINAR_MATERIAL', 'Materiales', expect.any(Object)
+        '99',
+        'ELIMINAR_MATERIAL',
+        'Materiales',
+        expect.any(Object),
       );
     });
   });

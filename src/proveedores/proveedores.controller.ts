@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Put,
   Param,
   Delete,
   Patch,
@@ -31,7 +30,7 @@ export class ProveedoresController {
   constructor(private readonly proveedoresService: ProveedoresService) {}
 
   @Post()
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COMPRADOR')
   @ApiOperation({ summary: 'Crear un nuevo proveedor' })
   @ApiResponse({ status: 201, description: 'Proveedor creado correctamente' })
   create(@Body() createProveedoreDto: CreateProveedorDto) {
@@ -39,21 +38,21 @@ export class ProveedoresController {
   }
 
   @Get()
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   @ApiOperation({ summary: 'Obtener todos los proveedores' })
   findAll() {
     return this.proveedoresService.findAll();
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   @ApiOperation({ summary: 'Obtener proveedor por ID' })
   findOne(@Param('id') id: string) {
     return this.proveedoresService.findOne(+id);
   }
 
   @Patch(':id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'COMPRADOR')
   @ApiOperation({ summary: 'Actualizar un proveedor' })
   update(
     @Param('id') id: string,

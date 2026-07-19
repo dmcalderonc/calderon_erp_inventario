@@ -3,7 +3,11 @@ import { RequirementsService } from './requirements.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Requirement, RequirementStatus } from './entities/requirement.entity';
-import { BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 describe('RequirementsService', () => {
   let service: RequirementsService;
@@ -39,7 +43,10 @@ describe('RequirementsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RequirementsService,
-        { provide: getRepositoryToken(Requirement), useValue: mockRequirementRepository },
+        {
+          provide: getRepositoryToken(Requirement),
+          useValue: mockRequirementRepository,
+        },
         { provide: DataSource, useValue: mockDataSource },
       ],
     }).compile();
@@ -54,10 +61,17 @@ describe('RequirementsService', () => {
 
   describe('create', () => {
     it('debe crear un requerimiento exitosamente', async () => {
-      const dto = { proyectoId: 1, detalles: [{ materialId: 2, cantidadSolicitada: 5 }] };
+      const dto = {
+        proyectoId: 'uuid-proyecto',
+        detalles: [{ materialId: 2, cantidadSolicitada: 5 }],
+      };
       const userId = 'user-1';
-      
-      const mappedEntity = { proyectoId: 1, estado: RequirementStatus.PENDIENTE, detalles: [{ materialId: 2, cantidadSolicitada: 5 }] };
+
+      const mappedEntity = {
+        proyectoId: 'uuid-proyecto',
+        estado: RequirementStatus.PENDIENTE,
+        detalles: [{ materialId: 2, cantidadSolicitada: 5 }],
+      };
       const savedEntity = { id: 1, ...mappedEntity };
 
       mockRequirementRepository.create.mockReturnValue(mappedEntity);
@@ -71,11 +85,13 @@ describe('RequirementsService', () => {
     });
 
     it('debe lanzar InternalServerErrorException si falla la base de datos', async () => {
-      const dto = { proyectoId: 1, detalles: [] };
+      const dto = { proyectoId: 'uuid-proyecto', detalles: [] };
       mockRequirementRepository.create.mockReturnValue({});
       mockRequirementRepository.save.mockRejectedValue(new Error('DB Error'));
 
-      await expect(service.create(dto, 'user-1')).rejects.toThrow(InternalServerErrorException);
+      await expect(service.create(dto, 'user-1')).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 
@@ -83,22 +99,30 @@ describe('RequirementsService', () => {
     it('debe lanzar NotFoundException si no existe el requerimiento', async () => {
       mockManager.findOne.mockResolvedValue(null);
 
-      await expect(service.updateStatus(1, { estado: RequirementStatus.APROBADO }, 'user-1'))
-        .rejects.toThrow(NotFoundException);
-      
+      await expect(
+        service.updateStatus(
+          1,
+          { estado: RequirementStatus.APROBADO },
+          'user-1',
+        ),
+      ).rejects.toThrow(NotFoundException);
+
       expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
       expect(mockQueryRunner.release).toHaveBeenCalled();
     });
 
     describe('Transición: PENDIENTE -> APROBADO', () => {
       it('debe reservar stock correctamente si hay suficiente cantidad', async () => {
-        const reqExistente = { 
-          id: 1, 
-          estado: RequirementStatus.PENDIENTE, 
+        const reqExistente = {
+          id: 1,
+          estado: RequirementStatus.PENDIENTE,
           detalles: [{ materialId: 2, cantidadSolicitada: 5 }],
-          proyecto: { bodega: { id: 2 } }
+          proyecto: { bodega: { id: 2 } },
         };
-        const stockExistente = { cantidad_disponible: 10, cantidad_reservada: 0 };
+        const stockExistente = {
+          cantidad_disponible: 10,
+          cantidad_reservada: 0,
+        };
 
         mockManager.findOne
           .mockResolvedValueOnce(reqExistente)
@@ -106,43 +130,60 @@ describe('RequirementsService', () => {
 
         mockManager.save.mockResolvedValue({});
 
-        await service.updateStatus(1, { estado: RequirementStatus.APROBADO }, 'user-1');
+        await service.updateStatus(
+          1,
+          { estado: RequirementStatus.APROBADO },
+          'user-1',
+        );
 
-        expect(mockManager.save).toHaveBeenCalledWith(expect.objectContaining({
-          cantidad_disponible: 5,
-          cantidad_reservada: 5
-        }));
+        expect(mockManager.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            cantidad_disponible: 5,
+            cantidad_reservada: 5,
+          }),
+        );
         expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
       });
 
       it('debe hacer rollback y lanzar BadRequestException si no hay stock suficiente', async () => {
-        const reqExistente = { 
-          id: 1, 
-          estado: RequirementStatus.PENDIENTE, 
-          detalles: [{ materialId: 2, cantidadSolicitada: 15 }] 
+        const reqExistente = {
+          id: 1,
+          estado: RequirementStatus.PENDIENTE,
+          detalles: [{ materialId: 2, cantidadSolicitada: 15 }],
         };
-        const stockInsuficiente = { cantidad_disponible: 10, cantidad_reservada: 0 }; 
+        const stockInsuficiente = {
+          cantidad_disponible: 10,
+          cantidad_reservada: 0,
+        };
 
         mockManager.findOne
           .mockResolvedValueOnce(reqExistente)
           .mockResolvedValueOnce(stockInsuficiente);
 
-        await expect(service.updateStatus(1, { estado: RequirementStatus.APROBADO }, 'user-1'))
-          .rejects.toThrow(BadRequestException);
-        
+        await expect(
+          service.updateStatus(
+            1,
+            { estado: RequirementStatus.APROBADO },
+            'user-1',
+          ),
+        ).rejects.toThrow(BadRequestException);
+
         expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalled();
       });
     });
 
     describe('Transición: APROBADO -> ATENDIDO', () => {
       it('debe generar movimientos y liberar el stock reservado', async () => {
-        const reqExistente = { 
-          id: 1, 
-          estado: RequirementStatus.APROBADO, 
+        const reqExistente = {
+          id: 1,
+          estado: RequirementStatus.APROBADO,
           detalles: [{ materialId: 2, cantidadSolicitada: 5 }],
-          proyecto: { bodega: { id: 2 } }
+          proyecto: { bodega: { id: 2 } },
         };
-        const stockReservado = { cantidad_disponible: 5, cantidad_reservada: 5 };
+        const stockReservado = {
+          cantidad_disponible: 5,
+          cantidad_reservada: 5,
+        };
         const movimientoGenerado = { id: 99 };
 
         mockManager.findOne
@@ -151,18 +192,24 @@ describe('RequirementsService', () => {
 
         mockManager.create.mockReturnValue({});
         mockManager.save.mockResolvedValueOnce(movimientoGenerado);
-        
-        await service.updateStatus(1, { estado: RequirementStatus.ATENDIDO }, 'user-1');
 
+        await service.updateStatus(
+          1,
+          { estado: RequirementStatus.ATENDIDO },
+          'user-1',
+        );
 
-        expect(mockManager.save).toHaveBeenCalledWith(expect.objectContaining({
-          cantidad_reservada: 0
-        }));
-        
+        expect(mockManager.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            cantidad_reservada: 0,
+          }),
+        );
 
-        expect(mockManager.save).toHaveBeenCalledWith(expect.objectContaining({
-          estado: RequirementStatus.ATENDIDO
-        }));
+        expect(mockManager.save).toHaveBeenCalledWith(
+          expect.objectContaining({
+            estado: RequirementStatus.ATENDIDO,
+          }),
+        );
 
         expect(mockQueryRunner.commitTransaction).toHaveBeenCalled();
       });

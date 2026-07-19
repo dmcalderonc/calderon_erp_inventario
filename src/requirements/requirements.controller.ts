@@ -22,26 +22,30 @@ export class RequirementsController {
   constructor(private readonly requirementsService: RequirementsService) {}
 
   @Post()
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   create(@Body() createRequirementDto: CreateRequirementDto, @Req() req: any) {
     const userId = req.user.id;
     return this.requirementsService.create(createRequirementDto, userId);
   }
 
   @Get()
-  @Roles('ADMIN', 'BODEGUERO')
-  findAll() {
-    return this.requirementsService.findAll();
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
+  findAll(@Req() req: any) {
+    const userId = req.user.id;
+    const rol = req.user.rol;
+    return this.requirementsService.findAll(userId, rol);
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'BODEGUERO')
-  findOne(@Param('id') id: string) {
-    return this.requirementsService.findOne(+id);
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
+  findOne(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user.id;
+    const rol = req.user.rol;
+    return this.requirementsService.findOne(+id, userId, rol);
   }
 
   @Patch(':id/status')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR')
   updateStatus(
     @Param('id') id: string,
     @Body() updateRequirementDto: UpdateRequirementDto,

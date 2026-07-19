@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AjustesInventarioController } from './ajustes-inventario.controller';
 import { AjustesInventarioService } from './ajustes-inventario.service';
-import { CreateAjusteInventarioDto } from './dto/create-ajuste-inventario.dto';
+import { CreateAjusteInventarioDto } from './dto/create-ajustes-inventario.dto';
 
 describe('AjustesInventarioController', () => {
   let controller: AjustesInventarioController;

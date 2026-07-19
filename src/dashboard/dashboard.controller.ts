@@ -11,21 +11,20 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('kpis')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   getKpis() {
     return this.dashboardService.obtenerKpis();
   }
 
   @Get('alertas-stock')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   getAlertasStock(@Query('umbral') umbral?: string) {
-
     const limite = umbral ? parseInt(umbral, 10) : 10;
     return this.dashboardService.obtenerAlertasStock(limite);
   }
 
   @Get('linea-tiempo')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   getLineaTiempo() {
     return this.dashboardService.obtenerLineaTiempo();
   }

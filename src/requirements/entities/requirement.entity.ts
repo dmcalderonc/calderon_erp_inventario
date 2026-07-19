@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../../users/user.entity';
 import { Proyecto } from '../../proyectos/proyecto.entity';
 import { RequirementDetail } from '../entities/requirement-detail.entity';
@@ -9,6 +17,7 @@ export enum RequirementStatus {
   PARCIALMENTE_ATENDIDO = 'PARCIALMENTE_ATENDIDO',
   ATENDIDO = 'ATENDIDO',
   RECHAZADO = 'RECHAZADO',
+  DESPACHADO = 'DESPACHADO',
 }
 
 @Entity('requerimientos')
@@ -19,7 +28,7 @@ export class Requirement {
   @Column({ name: 'proyecto_id', type: 'uuid' })
   proyectoId: string;
 
-  @ManyToOne(() => Proyecto, { nullable: false }) 
+  @ManyToOne(() => Proyecto, { nullable: false })
   @JoinColumn({ name: 'proyecto_id' })
   proyecto: Proyecto;
 
@@ -33,12 +42,16 @@ export class Requirement {
   @CreateDateColumn({ name: 'fecha_solicitud' })
   fechaSolicitud: Date;
 
-  @Column({ type: 'enum', enum: RequirementStatus, default: RequirementStatus.PENDIENTE })
+  @Column({
+    type: 'enum',
+    enum: RequirementStatus,
+    default: RequirementStatus.PENDIENTE,
+  })
   estado: RequirementStatus;
 
-  @OneToMany(() => RequirementDetail, (detalle) => detalle.requirement, { 
+  @OneToMany(() => RequirementDetail, (detalle) => detalle.requirement, {
     cascade: true,
-    onDelete: 'CASCADE'
+    onDelete: 'CASCADE',
   })
   detalles: RequirementDetail[];
 }

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { UserRole } from './user.entity';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -35,8 +36,18 @@ describe('UsersController', () => {
 
   describe('create', () => {
     it('debe crear un usuario', async () => {
-      const dto = { username: 'testuser', email: 'test@test.com', password: '123', rol: 'ADMIN' };
-      const resultado = { id: 1, nombre: 'testuser', email: 'test@test.com', rol: 'ADMIN' };
+      const dto = {
+        username: 'testuser',
+        email: 'test@test.com',
+        password: '123',
+        rol: UserRole.ADMIN,
+      };
+      const resultado = {
+        id: 1,
+        nombre: 'testuser',
+        email: 'test@test.com',
+        rol: 'ADMIN',
+      };
       mockUsersService.create.mockResolvedValue(resultado);
 
       expect(await controller.create(dto)).toEqual(resultado);
@@ -56,7 +67,7 @@ describe('UsersController', () => {
 
   describe('findOne', () => {
     it('debe retornar un usuario por ID numérico', async () => {
-      const id = 1; 
+      const id = 1;
       const resultado = { id: 1, nombre: 'testuser', email: 'test@test.com' };
       mockUsersService.findOne.mockResolvedValue(resultado);
 
@@ -69,7 +80,11 @@ describe('UsersController', () => {
     it('debe actualizar un usuario', async () => {
       const id = 1;
       const dto = { username: 'nuevoNombre' };
-      const resultado = { id: 1, nombre: 'nuevoNombre', email: 'test@test.com' };
+      const resultado = {
+        id: 1,
+        nombre: 'nuevoNombre',
+        email: 'test@test.com',
+      };
       mockUsersService.update.mockResolvedValue(resultado);
 
       expect(await controller.update(id, dto)).toEqual(resultado);
@@ -84,7 +99,7 @@ describe('UsersController', () => {
       mockUsersService.remove.mockResolvedValue(resultado);
 
       expect(await controller.remove(idStr)).toEqual(resultado);
-      expect(service.remove).toHaveBeenCalledWith(1); 
+      expect(service.remove).toHaveBeenCalledWith(1);
     });
   });
 });

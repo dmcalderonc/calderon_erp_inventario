@@ -30,25 +30,25 @@ export class ComprasController {
   ) {}
 
   @Post()
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR')
   create(@Body() createCompraDto: CreateCompraDto) {
     return this.comprasService.create(createCompraDto);
   }
 
   @Get()
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR')
   findAll() {
     return this.comprasService.findAll();
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR')
   findOne(@Param('id') id: string) {
     return this.comprasService.findOne(+id);
   }
 
   @Get(':id/pdf')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR')
   async descargarOrdenCompraPdf(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
@@ -73,7 +73,7 @@ export class ComprasController {
   }
 
   @Patch(':id')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'COMPRADOR')
   update(@Param('id') id: string, @Body() updateCompraDto: UpdateCompraDto) {
     return this.comprasService.update(+id, updateCompraDto);
   }

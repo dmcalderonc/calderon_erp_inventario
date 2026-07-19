@@ -15,7 +15,7 @@ describe('RequirementsController', () => {
   };
 
   const mockRequest = {
-    user: { id: 'uuid-de-usuario-real' },
+    user: { id: 'uuid-de-usuario-real', rol: 'ADMIN' },
   };
 
   beforeEach(async () => {
@@ -41,7 +41,7 @@ describe('RequirementsController', () => {
   describe('create', () => {
     it('debe crear un requerimiento usando el userId del Request', async () => {
       const dto = {
-        proyectoId: 1,
+        proyectoId: 'uuid-proyecto',
         detalles: [{ materialId: 1, cantidadSolicitada: 10 }],
       };
       const resultado = { id: 1, ...dto };
@@ -53,12 +53,15 @@ describe('RequirementsController', () => {
   });
 
   describe('findAll', () => {
-    it('debe retornar todos los requerimientos', async () => {
+    it('debe retornar todos los requerimientos según rol', async () => {
       const resultado = [{ id: 1, estado: 'PENDIENTE' }];
       mockRequirementsService.findAll.mockResolvedValue(resultado);
 
-      expect(await controller.findAll()).toEqual(resultado);
-      expect(service.findAll).toHaveBeenCalled();
+      expect(await controller.findAll(mockRequest)).toEqual(resultado);
+      expect(service.findAll).toHaveBeenCalledWith(
+        'uuid-de-usuario-real',
+        'ADMIN',
+      );
     });
   });
 
@@ -68,8 +71,12 @@ describe('RequirementsController', () => {
       const resultado = { id: 1, estado: 'PENDIENTE' };
       mockRequirementsService.findOne.mockResolvedValue(resultado);
 
-      expect(await controller.findOne(id)).toEqual(resultado);
-      expect(service.findOne).toHaveBeenCalledWith(1);
+      expect(await controller.findOne(id, mockRequest)).toEqual(resultado);
+      expect(service.findOne).toHaveBeenCalledWith(
+        1,
+        'uuid-de-usuario-real',
+        'ADMIN',
+      );
     });
   });
 

@@ -1,11 +1,20 @@
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Requirement, RequirementStatus } from './entities/requirement.entity';
 import { CreateRequirementDto } from './dto/create-requirement.dto';
 import { UpdateRequirementDto } from './dto/update-requirement.dto';
 import { Inventario } from '../inventario/inventario.entity';
-import { MovimientoInventario, TipoMovimiento, EstadoMovimiento } from '../movimientos/entities/movimiento-inventario.entity';
+import {
+  MovimientoInventario,
+  TipoMovimiento,
+  EstadoMovimiento,
+} from '../movimientos/entities/movimiento-inventario.entity';
 import { DetalleMovimiento } from '../movimientos/entities/detalle-movimiento.entity';
 
 @Injectable()
@@ -16,29 +25,33 @@ export class RequirementsService {
     @InjectRepository(Requirement)
     private reqRepository: Repository<Requirement>,
     private dataSource: DataSource,
-  ) { }
+  ) {}
 
   async create(createDto: CreateRequirementDto, userId: string) {
-  try {
-    const requirement = this.reqRepository.create({
-      proyectoId: createDto.proyectoId,
-      usuarioSolicitanteId: userId, 
-      estado: RequirementStatus.PENDIENTE,
-      detalles: createDto.detalles.map(detalle => ({
-        materialId: detalle.materialId,
-        cantidadSolicitada: detalle.cantidadSolicitada,
-      })),
-    });
-    
-    return await this.reqRepository.save(requirement);
-  } catch (error) {
-    console.log('--- ERROR DETALLADO ---');
-    console.log(error); 
-    throw new InternalServerErrorException(error.message);
-  }
-}
+    try {
+      const requirement = this.reqRepository.create({
+        proyectoId: createDto.proyectoId,
+        usuarioSolicitanteId: userId,
+        estado: RequirementStatus.PENDIENTE,
+        detalles: createDto.detalles.map((detalle) => ({
+          materialId: detalle.materialId,
+          cantidadSolicitada: detalle.cantidadSolicitada,
+        })),
+      });
 
-  async updateStatus(id: number, updateDto: UpdateRequirementDto, userId: string) {
+      return await this.reqRepository.save(requirement);
+    } catch (error) {
+      console.log('--- ERROR DETALLADO ---');
+      console.log(error);
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async updateStatus(
+    id: number,
+    updateDto: UpdateRequirementDto,
+    userId: string,
+  ) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -54,24 +67,34 @@ export class RequirementsService {
 
       if (!req) throw new NotFoundException('Requerimiento no encontrado');
 
-      if (updateDto.estado === RequirementStatus.APROBADO && req.estado === RequirementStatus.PENDIENTE) {
+      if (
+        updateDto.estado === RequirementStatus.APROBADO &&
+        req.estado === RequirementStatus.PENDIENTE
+      ) {
         for (const detalle of req.detalles) {
           const stock = await queryRunner.manager.findOne(Inventario, {
-            where: { bodega: { id: this.BODEGA_CENTRAL_ID }, material: { id: detalle.materialId } },
+            where: {
+              bodega: { id: this.BODEGA_CENTRAL_ID },
+              material: { id: detalle.materialId },
+            },
           });
 
           const disponible = Number(stock?.cantidad_disponible || 0);
           if (!stock || disponible < detalle.cantidadSolicitada) {
-            throw new BadRequestException(`Stock insuficiente para el material ID: ${detalle.materialId}`);
+            throw new BadRequestException(
+              `Stock insuficiente para el material ID: ${detalle.materialId}`,
+            );
           }
 
           stock.cantidad_disponible = disponible - detalle.cantidadSolicitada;
-          stock.cantidad_reservada = Number(stock.cantidad_reservada || 0) + detalle.cantidadSolicitada;
+          stock.cantidad_reservada =
+            Number(stock.cantidad_reservada || 0) + detalle.cantidadSolicitada;
           await queryRunner.manager.save(stock);
         }
-      }
-
-      else if (updateDto.estado === RequirementStatus.ATENDIDO && req.estado === RequirementStatus.APROBADO) {
+      } else if (
+        updateDto.estado === RequirementStatus.ATENDIDO &&
+        req.estado === RequirementStatus.APROBADO
+      ) {
         const movimiento = queryRunner.manager.create(MovimientoInventario, {
           tipo: TipoMovimiento.TRANSFERENCIA,
           fecha: new Date(),
@@ -86,11 +109,16 @@ export class RequirementsService {
 
         for (const detalle of req.detalles) {
           const stock = await queryRunner.manager.findOne(Inventario, {
-            where: { bodega: { id: this.BODEGA_CENTRAL_ID }, material: { id: detalle.materialId } },
+            where: {
+              bodega: { id: this.BODEGA_CENTRAL_ID },
+              material: { id: detalle.materialId },
+            },
           });
 
           if (stock) {
-            stock.cantidad_reservada = Number(stock.cantidad_reservada || 0) - detalle.cantidadSolicitada;
+            stock.cantidad_reservada =
+              Number(stock.cantidad_reservada || 0) -
+              detalle.cantidadSolicitada;
             await queryRunner.manager.save(stock);
           }
 
@@ -108,27 +136,38 @@ export class RequirementsService {
 
       await queryRunner.commitTransaction();
       return result;
-
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw error instanceof BadRequestException || error instanceof NotFoundException
+      throw error instanceof BadRequestException ||
+        error instanceof NotFoundException
         ? error
-        : new InternalServerErrorException('Error procesando el requerimiento: ' + error.message);
+        : new InternalServerErrorException(
+            'Error procesando el requerimiento: ' + error.message,
+          );
     } finally {
       await queryRunner.release();
     }
   }
 
-  async findAll() {
+  async findAll(userId?: string, rol?: string) {
+    const where: any = {};
+    if (rol === 'SOLICITANTE' && userId) {
+      where.usuarioSolicitanteId = userId;
+    }
     return await this.reqRepository.find({
-      relations: { detalles: true, proyecto: true, usuarioSolicitante: true }
+      where,
+      relations: { detalles: true, proyecto: true, usuarioSolicitante: true },
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, userId?: string, rol?: string) {
+    const where: any = { id };
+    if (rol === 'SOLICITANTE' && userId) {
+      where.usuarioSolicitanteId = userId;
+    }
     return await this.reqRepository.findOne({
-      where: { id },
-      relations: { detalles: { material: true }, proyecto: true }
+      where,
+      relations: { detalles: { material: true }, proyecto: true },
     });
   }
 

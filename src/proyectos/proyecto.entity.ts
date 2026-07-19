@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne, ManyToOne, OneToMany } from 'typeorm';
 import { Bodega } from '../bodegas/bodegas.entity';
 import { User } from '../users/user.entity';
-import { ProyectoUsuario } from 'src/users/proyecto-usuario.entity';
+import { ProyectoUsuario } from '../users/proyecto-usuario.entity';
 
 export enum EstadoProyecto {
   ACTIVO = 'ACTIVO',
