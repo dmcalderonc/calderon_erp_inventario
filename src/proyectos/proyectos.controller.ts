@@ -13,6 +13,7 @@ import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { ProyectoAccessGuard } from '../auth/guards/ProyectoAccessGuard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('proyectos')
@@ -32,9 +33,10 @@ export class ProyectosController {
     return await this.proyectosService.findAll();
   }
 
-  @Get(':id')
+  @Get(':proyectoId')
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  async findOne(@Param('id') id: string) {
+  @UseGuards(ProyectoAccessGuard)
+  async findOne(@Param('proyectoId') id: string) {
     return await this.proyectosService.findOne(id);
   }
 

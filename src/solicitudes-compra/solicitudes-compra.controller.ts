@@ -12,11 +12,12 @@ import {
 import { SolicitudesCompraService } from './solicitudes-compra.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { ProyectoAccessGuard } from '../auth/guards/ProyectoAccessGuard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { EstadoSolicitud } from './entities/solicitud-compra.entity';
 
 @Controller('solicitudes-compra')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ProyectoAccessGuard)
 export class SolicitudesCompraController {
   constructor(private readonly solicitudesService: SolicitudesCompraService) {}
 

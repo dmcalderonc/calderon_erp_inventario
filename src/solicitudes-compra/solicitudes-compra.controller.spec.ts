@@ -1,10 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { DataSource } from 'typeorm';
 import { SolicitudesCompraController } from './solicitudes-compra.controller';
 import { SolicitudesCompraService } from './solicitudes-compra.service';
+import { ProyectoAccessGuard } from '../auth/guards/ProyectoAccessGuard';
 
 describe('SolicitudesCompraController', () => {
   let controller: SolicitudesCompraController;
   let service: SolicitudesCompraService;
+
+  const mockDataSource = {
+    getRepository: jest.fn().mockReturnValue({
+      findOne: jest.fn().mockResolvedValue(null),
+    }),
+  };
 
   const mockSolicitudesService = {
     findAll: jest.fn(),
@@ -19,10 +27,9 @@ describe('SolicitudesCompraController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SolicitudesCompraController],
       providers: [
-        {
-          provide: SolicitudesCompraService,
-          useValue: mockSolicitudesService,
-        },
+        { provide: SolicitudesCompraService, useValue: mockSolicitudesService },
+        { provide: DataSource, useValue: mockDataSource },
+        ProyectoAccessGuard,
       ],
     }).compile();
 

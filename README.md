@@ -88,9 +88,3 @@ npm test          # Ejecutar todas las pruebas
 npm run test:cov  # Pruebas con reporte de cobertura
 ```
 
-## Correcciones Técnicas
-
-- **despachos.service.ts**: Se corrigieron errores de TypeScript (relaciones TypeORM v0.3, uso de entidad en `manager.create`, se agregó estado `DESPACHADO` al enum `RequirementStatus`).
-- **Guard sin usar**: `ProyectoAccessGuard` está definido en `src/auth/guards/` pero no se utiliza actualmente en ningún controlador.
-- **cotizaciones.service.ts**: Contiene código placeholder (retorna strings). Pendiente de implementar con repositorios.
-- **tsconfig.json**: Se agregó `"jest"` a la propiedad `types`.

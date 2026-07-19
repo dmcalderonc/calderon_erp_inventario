@@ -1,10 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { DataSource } from 'typeorm';
 import { RequirementsController } from './requirements.controller';
 import { RequirementsService } from './requirements.service';
+import { ProyectoAccessGuard } from '../auth/guards/ProyectoAccessGuard';
 
 describe('RequirementsController', () => {
   let controller: RequirementsController;
   let service: RequirementsService;
+
+  const mockDataSource = {
+    getRepository: jest.fn().mockReturnValue({
+      findOne: jest.fn().mockResolvedValue(null),
+    }),
+  };
 
   const mockRequirementsService = {
     create: jest.fn(),
@@ -22,10 +30,9 @@ describe('RequirementsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RequirementsController],
       providers: [
-        {
-          provide: RequirementsService,
-          useValue: mockRequirementsService,
-        },
+        { provide: RequirementsService, useValue: mockRequirementsService },
+        { provide: DataSource, useValue: mockDataSource },
+        ProyectoAccessGuard,
       ],
     }).compile();
 

@@ -14,10 +14,11 @@ import { CreateRequirementDto } from './dto/create-requirement.dto';
 import { UpdateRequirementDto } from './dto/update-requirement.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { ProyectoAccessGuard } from '../auth/guards/ProyectoAccessGuard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('requirements')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ProyectoAccessGuard)
 export class RequirementsController {
   constructor(private readonly requirementsService: RequirementsService) {}
 
