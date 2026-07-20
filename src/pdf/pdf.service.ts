@@ -3,34 +3,29 @@ import { TDocumentDefinitions } from 'pdfmake/interfaces';
 
 @Injectable()
 export class PdfService {
-  private fonts = {
-    Helvetica: {
-      normal: 'Helvetica',
-      bold: 'Helvetica-Bold',
-      italics: 'Helvetica-Oblique',
-      bolditalics: 'Helvetica-BoldOblique',
-    },
-  };
+  private pdfMake: any;
 
-  
-
-  private getPrinter() {
-    const PdfPrinter = eval('require("pdfmake/js/Printer")').default;
-    return new PdfPrinter(this.fonts);
+  private getPdfMake() {
+    if (!this.pdfMake) {
+      const pdfMake = eval('require("pdfmake/build/pdfmake")');
+      const pdfFonts = eval('require("pdfmake/build/vfs_fonts")');
+      pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
+      this.pdfMake = pdfMake;
+    }
+    return this.pdfMake;
   }
 
   async generarOrdenCompraPdf(orden: any): Promise<Buffer> {
-    const printer = await this.getPrinter();
-    
-    const proveedor = orden.proveedor || {}; 
+    const pdfMake = this.getPdfMake();
+
+    const proveedor = orden.proveedor || {};
     const detallesBody = orden.detalles?.map((det: any) => [
-      det.id.toString(), 
+      det.id.toString(),
       det.cantidad.toString(),
       `$${det.precioUnitario}`,
       `$${(det.cantidad * det.precioUnitario).toFixed(2)}`,
     ]) || [];
 
-    
     const docDefinition: TDocumentDefinitions = {
       defaultStyle: { font: 'Helvetica' },
       content: [
@@ -38,7 +33,7 @@ export class PdfService {
         { text: `Lugar y Fecha de Emisión: Quito, Ecuador - ${new Date(orden.fechaEmision).toLocaleDateString()}`, margin: [0, 10, 0, 10] },
         { text: `Código de Orden: ${orden.codigo || 'S/N'}`, bold: true },
         { text: `Estado: ${orden.estado}`, margin: [0, 0, 0, 15] },
-        
+
         { text: 'Datos del Proveedor', style: 'subheader' },
         {
           layout: 'lightHorizontalLines',
@@ -91,22 +86,12 @@ export class PdfService {
       }
     };
 
-    return new Promise((resolve, reject) => {
-      try {
-        const pdfDoc = printer.createPdfKitDocument(docDefinition);
-        const chunks: Buffer[] = [];
-        pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
-        pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-        pdfDoc.on('error', (error: any) => reject(error));
-        pdfDoc.end();
-      } catch (error) {
-        reject(error);
-      }
-    });
+    const pdfDoc = pdfMake.createPdf(docDefinition);
+    return pdfDoc.getBuffer();
   }
 
   async generarTicketMovimientoPdf(movimiento: any): Promise<Buffer> {
-    const printer = await this.getPrinter();
+    const pdfMake = this.getPdfMake();
 
     const docDefinition: TDocumentDefinitions = {
       defaultStyle: { font: 'Helvetica' },
@@ -131,17 +116,7 @@ export class PdfService {
       }
     };
 
-    return new Promise((resolve, reject) => {
-      try {
-        const pdfDoc = printer.createPdfKitDocument(docDefinition);
-        const chunks: Buffer[] = [];
-        pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
-        pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-        pdfDoc.on('error', (error: any) => reject(error));
-        pdfDoc.end();
-      } catch (error) {
-        reject(error);
-      }
-    });
+    const pdfDoc = pdfMake.createPdf(docDefinition);
+    return pdfDoc.getBuffer();
   }
 }
