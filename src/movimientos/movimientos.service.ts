@@ -184,6 +184,7 @@ export class MovimientosService {
   async findAll() {
     return await this.movRepository.find({
       order: { fecha: 'DESC' },
+      relations: { bodegaOrigen: true, bodegaDestino: true },
     });
   }
 
