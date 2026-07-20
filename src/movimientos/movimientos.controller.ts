@@ -32,6 +32,12 @@ export class MovimientosController {
     return await this.movimientosService.registrarMovimiento(dto, usuarioId);
   }
 
+  @Get()
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
+  async findAll() {
+    return await this.movimientosService.findAll();
+  }
+
   @Get(':id/ticket')
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   async descargarTicketPdf(@Param('id') id: string, @Res() res: Response) {

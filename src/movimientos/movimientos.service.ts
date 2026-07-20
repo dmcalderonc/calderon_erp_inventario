@@ -16,18 +16,14 @@ import {
 import { DetalleMovimiento } from './entities/detalle-movimiento.entity';
 import { Inventario } from '../inventario/inventario.entity';
 import { AuditoriaService } from '../auditoria/auditoria.service';
-import {
-  Requirement,
-  RequirementStatus,
-} from '../requirements/entities/requirement.entity';
 
 @Injectable()
 export class MovimientosService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly auditoriaService: AuditoriaService,
-    @InjectRepository(Requirement)
-    private readonly reqRepository: Repository<Requirement>,
+    @InjectRepository(MovimientoInventario)
+    private readonly movRepository: Repository<MovimientoInventario>,
   ) {}
 
   async registrarMovimiento(dto: CreateMovimientoDto, usuarioId: string) {
@@ -186,34 +182,20 @@ export class MovimientosService {
   }
 
   async findAll() {
-    return await this.reqRepository.find({
-      relations: { detalles: true, proyecto: true, usuarioSolicitante: true },
+    return await this.movRepository.find({
+      order: { fecha: 'DESC' },
     });
   }
 
-  async findOne(id: number) {
-    const req = await this.reqRepository.findOne({
+  async findOne(id: string) {
+    const mov = await this.movRepository.findOne({
       where: { id },
-      relations: {
-        detalles: { material: true },
-        proyecto: true,
-        usuarioSolicitante: true,
-      },
+      relations: { detalles: { material: true } },
     });
 
-    if (!req) {
-      throw new NotFoundException(`Requerimiento #${id} no encontrado`);
+    if (!mov) {
+      throw new NotFoundException(`Movimiento ${id} no encontrado`);
     }
-    return req;
-  }
-
-  async remove(id: number) {
-    const req = await this.findOne(id);
-    if (req.estado !== RequirementStatus.PENDIENTE) {
-      throw new BadRequestException(
-        'Solo se pueden eliminar requerimientos pendientes',
-      );
-    }
-    return await this.reqRepository.remove(req);
+    return mov;
   }
 }
