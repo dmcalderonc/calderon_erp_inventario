@@ -115,7 +115,7 @@ export class MovimientosService {
           if (!stockDestino) {
             stockDestino = queryRunner.manager.create(Inventario, {
               bodega_id: dto.bodegaDestinoId,
-              material_id: materialId,
+              materialId: materialId,
               cantidad_disponible: 0,
               cantidad_reservada: 0,
             });
