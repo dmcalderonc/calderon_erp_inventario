@@ -14,20 +14,9 @@ export class PdfService {
 
   
 
-  private async getPrinter() {
-    const pdfMakeModule = eval('require("pdfmake")');
-    let PdfPrinter;
-    if (typeof pdfMakeModule === 'function') {
-      PdfPrinter = pdfMakeModule;
-    } else if (pdfMakeModule && typeof pdfMakeModule.default === 'function') {
-      PdfPrinter = pdfMakeModule.default;
-    } else if (pdfMakeModule && typeof pdfMakeModule.Printer === 'function') {
-      PdfPrinter = pdfMakeModule.Printer;
-    } else {
-      PdfPrinter = pdfMakeModule; 
-    }
-    
-    return new (PdfPrinter as any)(this.fonts);
+  private getPrinter() {
+    const PdfPrinter = eval('require("pdfmake/js/Printer")').default;
+    return new PdfPrinter(this.fonts);
   }
 
   async generarOrdenCompraPdf(orden: any): Promise<Buffer> {
