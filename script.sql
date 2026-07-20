@@ -11,6 +11,18 @@ ALTER DATABASE db_erp_inventario OWNER TO armin_erp_inventario;
 ALTER SCHEMA public OWNER TO armin_erp_inventario;
 GRANT CREATE ON SCHEMA public TO armin_erp_inventario;
 
+
+# Conectar a PostgreSQL
+psql -U armin_erp_inventario -d db_erp_inventario
+
+# Ejecutar los UPDATEs arriba
+# Luego:
+\q
+
+# Reiniciar
+pm2 restart calderon-erp-inventario-api
+
+
 mongosh
 
 use admin
