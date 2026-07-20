@@ -2,7 +2,6 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -10,12 +9,6 @@ import { Requirement, RequirementStatus } from './entities/requirement.entity';
 import { CreateRequirementDto } from './dto/create-requirement.dto';
 import { UpdateRequirementDto } from './dto/update-requirement.dto';
 import { Inventario } from '../inventario/inventario.entity';
-import {
-  MovimientoInventario,
-  TipoMovimiento,
-  EstadoMovimiento,
-} from '../movimientos/entities/movimiento-inventario.entity';
-import { DetalleMovimiento } from '../movimientos/entities/detalle-movimiento.entity';
 
 @Injectable()
 export class RequirementsService {
@@ -28,122 +21,123 @@ export class RequirementsService {
   ) {}
 
   async create(createDto: CreateRequirementDto, userId: string) {
-    try {
-      const requirement = this.reqRepository.create({
-        proyectoId: createDto.proyectoId,
-        usuarioSolicitanteId: userId,
-        estado: RequirementStatus.PENDIENTE,
-        detalles: createDto.detalles.map((detalle) => ({
-          materialId: detalle.materialId,
-          cantidadSolicitada: detalle.cantidadSolicitada,
-        })),
-      });
+    const requirement = this.reqRepository.create({
+      proyectoId: createDto.proyectoId,
+      usuarioSolicitanteId: userId,
+      estado: RequirementStatus.PENDIENTE,
+      detalles: createDto.detalles.map((detalle) => ({
+        materialId: detalle.materialId,
+        cantidadSolicitada: detalle.cantidadSolicitada,
+      })),
+    });
 
-      return await this.reqRepository.save(requirement);
-    } catch (error) {
-      console.log('--- ERROR DETALLADO ---');
-      console.log(error);
-      throw new InternalServerErrorException(error.message);
-    }
+    return await this.reqRepository.save(requirement);
   }
 
-  async updateStatus(
-    id: number,
-    updateDto: UpdateRequirementDto,
-    userId: string,
-  ) {
+  async updateStatus(id: number, updateDto: UpdateRequirementDto, userId?: string) {
+    const req = await this.reqRepository.findOne({
+      where: { id },
+      relations: { detalles: true, proyecto: { bodega: true } },
+    });
+
+    if (!req) {
+      throw new NotFoundException(`Requerimiento #${id} no encontrado.`);
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const req = await queryRunner.manager.findOne(Requirement, {
-        where: { id },
-        relations: {
-          detalles: true,
-          proyecto: { bodega: true },
-        },
-      });
-
-      if (!req) throw new NotFoundException('Requerimiento no encontrado');
-
-      if (
-        updateDto.estado === RequirementStatus.APROBADO &&
-        req.estado === RequirementStatus.PENDIENTE
-      ) {
-        for (const detalle of req.detalles) {
+      if (updateDto.estado === RequirementStatus.APROBADO && req.estado === RequirementStatus.PENDIENTE) {
+        for (const det of req.detalles) {
           const stock = await queryRunner.manager.findOne(Inventario, {
             where: {
-              bodega: { id: this.BODEGA_CENTRAL_ID },
-              material: { id: detalle.materialId },
+              materialId: Number(det.materialId),
+              bodega_id: this.BODEGA_CENTRAL_ID,
             },
           });
 
-          const disponible = Number(stock?.cantidad_disponible || 0);
-          if (!stock || disponible < detalle.cantidadSolicitada) {
+          const cantidadReq = Number(det.cantidadSolicitada);
+
+          if (!stock || (stock.cantidad_disponible || 0) < cantidadReq) {
+            await queryRunner.rollbackTransaction();
             throw new BadRequestException(
-              `Stock insuficiente para el material ID: ${detalle.materialId}`,
+              `Stock insuficiente para material ${det.materialId}. Disponible: ${stock?.cantidad_disponible || 0}, Requerido: ${cantidadReq}`,
             );
           }
 
-          stock.cantidad_disponible = disponible - detalle.cantidadSolicitada;
-          stock.cantidad_reservada =
-            Number(stock.cantidad_reservada || 0) + detalle.cantidadSolicitada;
+          stock.cantidad_disponible = (stock.cantidad_disponible || 0) - cantidadReq;
+          stock.cantidad_reservada = (stock.cantidad_reservada || 0) + cantidadReq;
           await queryRunner.manager.save(stock);
         }
-      } else if (
-        updateDto.estado === RequirementStatus.ATENDIDO &&
-        req.estado === RequirementStatus.APROBADO
-      ) {
-        const movimiento = queryRunner.manager.create(MovimientoInventario, {
-          tipo: TipoMovimiento.TRANSFERENCIA,
-          fecha: new Date(),
-          observaciones: `Egreso automático por Requerimiento REQ-${req.id}`,
-          usuarioId: userId,
-          bodegaOrigenId: this.BODEGA_CENTRAL_ID,
-          bodegaDestinoId: req.proyecto.bodega?.id || null,
-          estado: EstadoMovimiento.PROCESADO,
-        } as any);
 
-        const movimientoGuardado = await queryRunner.manager.save(movimiento);
+        req.estado = RequirementStatus.APROBADO;
 
-        for (const detalle of req.detalles) {
-          const stock = await queryRunner.manager.findOne(Inventario, {
-            where: {
-              bodega: { id: this.BODEGA_CENTRAL_ID },
-              material: { id: detalle.materialId },
-            },
-          });
+      } else if (updateDto.estado === RequirementStatus.ATENDIDO && req.estado === RequirementStatus.APROBADO) {
+        const bodegaDestinoId = req.proyecto?.bodega?.id;
 
-          if (stock) {
-            stock.cantidad_reservada =
-              Number(stock.cantidad_reservada || 0) -
-              detalle.cantidadSolicitada;
-            await queryRunner.manager.save(stock);
+        for (const det of req.detalles) {
+          const cantidadDespachada = Number(det.cantidadDespachada || det.cantidadSolicitada);
+          const materialId = Number(det.materialId);
+
+          await queryRunner.manager.decrement(
+            Inventario,
+            { materialId, bodega_id: this.BODEGA_CENTRAL_ID },
+            'cantidad_reservada',
+            cantidadDespachada,
+          );
+
+          await queryRunner.manager.decrement(
+            Inventario,
+            { materialId, bodega_id: this.BODEGA_CENTRAL_ID },
+            'cantidad_disponible',
+            cantidadDespachada,
+          );
+
+          if (bodegaDestinoId) {
+            const stockDestino = await queryRunner.manager.findOne(Inventario, {
+              where: { materialId, bodega_id: Number(bodegaDestinoId) },
+            });
+
+            if (stockDestino) {
+              stockDestino.cantidad_disponible = (stockDestino.cantidad_disponible || 0) + cantidadDespachada;
+              await queryRunner.manager.save(stockDestino);
+            } else {
+              const nuevoStock = queryRunner.manager.create(Inventario, {
+                materialId,
+                bodega_id: Number(bodegaDestinoId),
+                cantidad_disponible: cantidadDespachada,
+                cantidad_reservada: 0,
+              });
+              await queryRunner.manager.save(nuevoStock);
+            }
           }
 
-          const detalleMov = queryRunner.manager.create(DetalleMovimiento, {
-            movimientoId: movimientoGuardado.id,
-            materialId: detalle.materialId,
-            cantidad: detalle.cantidadSolicitada,
-          } as any);
-          await queryRunner.manager.save(detalleMov);
+          det.cantidadDespachada = cantidadDespachada;
+          det.estadoItem = 'DESPACHADO' as any;
+          await queryRunner.manager.save(det);
         }
+
+        req.estado = RequirementStatus.ATENDIDO;
+
+      } else {
+        throw new BadRequestException(
+          `Transición no válida: ${req.estado} → ${updateDto.estado}`,
+        );
       }
 
-      req.estado = updateDto.estado;
-      const result = await queryRunner.manager.save(req);
-
+      await queryRunner.manager.save(req);
       await queryRunner.commitTransaction();
-      return result;
+
+      return this.reqRepository.findOne({
+        where: { id },
+        relations: { detalles: true, proyecto: true },
+      });
+
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw error instanceof BadRequestException ||
-        error instanceof NotFoundException
-        ? error
-        : new InternalServerErrorException(
-            'Error procesando el requerimiento: ' + error.message,
-          );
+      throw error;
     } finally {
       await queryRunner.release();
     }

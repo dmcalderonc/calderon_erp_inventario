@@ -1,21 +1,21 @@
 import {
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { Inventario } from '../inventario/inventario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
   Requirement,
-  RequirementStatus,
 } from '../requirements/entities/requirement.entity';
 import { Proyecto } from '../proyectos/proyecto.entity';
 import {
   MovimientoInventario,
   TipoMovimiento,
+  EstadoMovimiento,
 } from '../movimientos/entities/movimiento-inventario.entity';
 import { MovimientosService } from '../movimientos/movimientos.service';
 import { CreateEntregaDirectaDto } from './dto/create-entrega-directa_mp.dto';
@@ -32,102 +32,100 @@ export class DespachosService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async registrarEntregaDirecta(
-    dto: CreateEntregaDirectaDto,
-    usuarioFirmaId: string,
-  ) {
-    // Iniciamos la transacción controlada por QueryRunner
+  async registrarEntregaDirecta(dto: any, usuarioFirmaId: string) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    let movimientoGeneradoId: string | null = null;
-
     try {
-      // 1. Validar existencia del Proyecto y su Bodega Virtual
-      const proyecto = await queryRunner.manager.findOne(Proyecto, {
+      const proyecto = await this.proyectoRepository.findOne({
         where: { id: dto.proyectoId },
         relations: { bodega: true },
       });
 
-      if (!proyecto || !proyecto.bodega) {
-        throw new NotFoundException(
-          'El Proyecto o su Bodega Virtual no existen.',
-        );
+      if (!proyecto) {
+        throw new NotFoundException(`Proyecto con ID ${dto.proyectoId} no encontrado.`);
       }
 
-      // CRITERIO: Movimiento A (INGRESO a Bodega Virtual)
-      // Nota: Aquí creamos el movimiento usando el Manager de la transacción actual
-      // para garantizar que si falla el paso B, este paso también se revierta.
-      const nuevoMovimiento = queryRunner.manager.create(MovimientoInventario, {
-        tipo: TipoMovimiento.INGRESO,
-        bodegaDestinoId: proyecto.bodega.id,
-        observaciones: `OC-${dto.ordenCompraId}-ENTREGA-DIRECTA`,
-        usuarioId: usuarioFirmaId,
-        detalles: dto.detalles.map((d) => ({
-          materialId: d.materialId,
-          cantidad: d.cantidad,
-        })),
-      } as any);
-      const movimientoGuardado =
-        await queryRunner.manager.save(nuevoMovimiento);
-      movimientoGeneradoId = movimientoGuardado.id ?? null;
+      const bodegaId = proyecto.bodega?.id;
+      if (!bodegaId) {
+        throw new BadRequestException('El proyecto no tiene una bodega asignada.');
+      }
 
-      // CRITERIO: Movimiento B (Cambio de Estado del Requerimiento)
-      const requerimiento = await queryRunner.manager.findOne(Requirement, {
-        where: { id: dto.requerimientoId },
+      const movement = queryRunner.manager.create(MovimientoInventario, {
+        tipo: TipoMovimiento.INGRESO,
+        estado: EstadoMovimiento.PROCESADO,
+        observaciones: dto.observaciones || `Entrega directa al proyecto ${proyecto.nombre}`,
+        usuarioId: usuarioFirmaId,
+        bodegaDestinoId: Number(bodegaId),
+        detalles: dto.detalles.map((d: any) => ({
+          materialId: Number(d.materialId),
+          cantidad: Number(d.cantidad),
+        })),
       });
 
-      if (!requerimiento) {
-        throw new NotFoundException('Requerimiento no encontrado.');
+      await queryRunner.manager.save(MovimientoInventario, movement);
+
+      for (const detalle of dto.detalles) {
+        const materialId = Number(detalle.materialId);
+        const cantidad = Number(detalle.cantidad);
+
+        const stockActual = await queryRunner.manager.findOne(Inventario, {
+          where: { materialId, bodega_id: Number(bodegaId) },
+        });
+
+        if (stockActual) {
+          stockActual.cantidad_disponible = (stockActual.cantidad_disponible || 0) + cantidad;
+          await queryRunner.manager.save(Inventario, stockActual);
+        } else {
+          const nuevoStock = queryRunner.manager.create(Inventario, {
+            materialId,
+            bodega_id: Number(bodegaId),
+            cantidad_disponible: cantidad,
+            cantidad_reservada: 0,
+          });
+          await queryRunner.manager.save(Inventario, nuevoStock);
+        }
       }
 
-      if (requerimiento.estado !== RequirementStatus.APROBADO) {
-        throw new BadRequestException(
-          'El requerimiento debe estar en estado APROBADO para realizar la entrega directa.',
-        );
+      if (dto.requerimientoId) {
+        const req = await queryRunner.manager.findOne(Requirement, {
+          where: { id: dto.requerimientoId },
+          relations: { detalles: true },
+        });
+
+        if (req) {
+          for (const det of (req.detalles || [])) {
+            det.estadoItem = 'DESPACHADO' as any;
+            det.cantidadDespachada = Number(det.cantidadSolicitada);
+            await queryRunner.manager.save(det);
+          }
+          req.estado = 'DESPACHADO' as any;
+          await queryRunner.manager.save(req);
+        }
       }
 
-      requerimiento.estado = RequirementStatus.DESPACHADO;
-      await queryRunner.manager.save(requerimiento);
-
-      // Confirmamos que ambas operaciones SQL fueron exitosas
       await queryRunner.commitTransaction();
+
+      try {
+        await this.auditModel.create({
+          accion: 'ENTREGA_DIRECTA',
+          entidad: 'Despacho',
+          entidadId: movement.id,
+          usuarioId: usuarioFirmaId,
+          detalles: { proyectoId: dto.proyectoId, materiales: dto.detalles.length },
+        });
+      } catch (e) {
+        console.error('Error al registrar auditoría en MongoDB:', e);
+      }
+
+      return { message: 'Entrega directa registrada y stock actualizado.', movimientoId: movement.id };
+
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw error instanceof BadRequestException ||
-        error instanceof NotFoundException
-        ? error
-        : new InternalServerErrorException(
-            `Fallo en transacción de entrega directa: ${error.message}`,
-          );
+      throw error;
     } finally {
       await queryRunner.release();
     }
-
-    // CRITERIO: Auditoría Forense (MongoDB)
-    // Se ejecuta fuera del bloque SQL porque Mongo no es parte de la transacción relacional
-    try {
-      await this.auditModel.create({
-        accion: 'ENTREGA_DIRECTA_OBRA',
-        entidad: 'Despacho',
-        registroId: movimientoGeneradoId,
-        usuarioFirmaId: usuarioFirmaId,
-        detalles: `Recepción directa en proyecto ${dto.proyectoId} para Req #${dto.requerimientoId}`,
-        fecha: new Date(),
-      });
-    } catch (mongoError) {
-      console.error(
-        'Alerta: Fallo en el guardado de auditoría forense:',
-        mongoError,
-      );
-      // Opcional: Podrías notificar a un logger de errores externo sin romper la respuesta del usuario
-    }
-
-    return {
-      statusCode: 201,
-      message: 'Entrega directa procesada exitosamente con doble afectación.',
-      movimientoId: movimientoGeneradoId,
-    };
   }
 }

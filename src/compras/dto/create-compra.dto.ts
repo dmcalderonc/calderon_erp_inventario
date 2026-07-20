@@ -1,13 +1,15 @@
-import { IsNotEmpty, IsNumber, IsPositive, IsArray, ValidateNested, IsOptional, IsString, IsDateString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsInt, IsPositive, IsArray, ValidateNested, IsOptional, IsString, IsDateString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class DetalleDto {
   @IsNumber()
   @IsPositive()
   materialId?: number;
-  @IsNumber()
-  @IsPositive()
+
+  @IsInt()
+  @Min(1)
   cantidad?: number;
+
   @IsNumber()
   @IsPositive()
   precioUnitario?: number;
@@ -19,7 +21,7 @@ export class CreateCompraDto {
   proveedorId?: number;
 
   @IsOptional()
-  @IsDateString() 
+  @IsDateString()
   fechaEmision?: string;
 
   @IsOptional()

@@ -1,14 +1,12 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { OrdenCompra } from './entities/orden-compra.entity';
 import { MovimientosService } from '../movimientos/movimientos.service';
-import { CreateCompraDto } from './dto/create-compra.dto';
-import { UpdateCompraDto } from './dto/update-compra.dto';
 import { Cotizacion, EstadoCotizacion } from '../cotizaciones/entities/cotizacion.entity';
-import { ForbiddenException } from '@nestjs/common';
+import { TipoMovimiento } from '../movimientos/entities/movimiento-inventario.entity';
 
 @Injectable()
 export class ComprasService {
@@ -22,69 +20,99 @@ export class ComprasService {
   ) { }
 
   async create(dto: any) {
-    try {
-      if (dto.solicitudId) {
-        const cotizacionElegida = await this.cotizacionRepository.findOne({
-          where: {
-            solicitudId: dto.solicitudId,
-            estado: EstadoCotizacion.ELEGIDA
-          }
-        });
+    const { solicitudId, ...rest } = dto;
 
-        if (!cotizacionElegida) {
-          throw new ForbiddenException('Políticas de Adquisición: No se puede emitir la Orden de Compra sin una cotización aprobada (ELEGIDA).');
-        }
+    if (solicitudId) {
+      const cotizacion = await this.cotizacionRepository.findOne({
+        where: { solicitudId },
+      });
+
+      if (!cotizacion) {
+        throw new ForbiddenException('No existe cotización asociada a esta solicitud.');
       }
 
-      const nuevoCodigo = `OC-${Date.now()}`;
-      const nuevaOrden = this.ocRepository.create({
-        ...dto,
-        codigo: nuevoCodigo,
-        estado: 'BORRADOR',
-        fechaEmision: dto.fechaEmision ? new Date(dto.fechaEmision) : new Date(),
-      });
-      return await this.ocRepository.save(nuevaOrden);
-    } catch (error) {
-      if (error instanceof ForbiddenException) throw error;
-      throw new InternalServerErrorException('No se pudo crear la orden de compra');
+      if (cotizacion.estado !== EstadoCotizacion.ELEGIDA) {
+        throw new ForbiddenException('La cotización asociada aún no ha sido aprobada.');
+      }
     }
+
+    const nuevaOC = this.ocRepository.create({
+      ...rest,
+      estado: 'BORRADOR',
+    });
+
+    return this.ocRepository.save(nuevaOC);
   }
 
   async recibirOrden(id: number, usuarioId: string) {
-    const orden = await this.ocRepository.findOneBy({ id });
-    if (!orden) throw new NotFoundException('Orden no encontrada');
-
-
-    await this.auditModel.create({
-      ordenCompraId: id,
-      estadoAnterior: orden.estado,
-      estadoNuevo: 'RECIBIDA',
-      usuarioId: usuarioId,
-      fecha: new Date(),
+    const orden = await this.ocRepository.findOne({
+      where: { id },
+      relations: { detalles: true },
     });
 
+    if (!orden) {
+      throw new NotFoundException(`Orden de compra #${id} no encontrada.`);
+    }
+
+    if (orden.estado === 'RECIBIDA') {
+      throw new BadRequestException(`La orden de compra #${id} ya fue recibida.`);
+    }
 
     orden.estado = 'RECIBIDA';
     await this.ocRepository.save(orden);
 
+    const detallesMovimiento = (orden.detalles || []).map(d => ({
+      materialId: Number(d.materialId),
+      cantidad: Number(d.cantidad),
+    }));
 
-    await this.movimientosService.registrarMovimiento({
-      tipo: 'INGRESO',
-      observaciones: `Ingreso automático por OC-${orden.id}`,
-      usuarioId: usuarioId,
-      bodegaDestinoId: 1,
-      detalles: []
-    } as any, usuarioId);
+    if (detallesMovimiento.length > 0) {
+      await this.movimientosService.registrarMovimiento(
+        {
+          tipo: TipoMovimiento.INGRESO,
+          observaciones: `Recepción de OC #${id}`,
+          bodegaDestinoId: 1,
+          detalles: detallesMovimiento,
+        },
+        usuarioId,
+      );
+    }
 
-    return { mensaje: 'Orden recibida con éxito' };
+    try {
+      await this.auditModel.create({
+        accion: 'RECIBIR_ORDEN_COMPRA',
+        entidad: 'OrdenCompra',
+        entidadId: id.toString(),
+        usuarioId,
+        detalles: { ordenId: id, estado: 'RECIBIDA' },
+      });
+    } catch (e) {
+      console.error('Error al registrar auditoría en MongoDB:', e);
+    }
+
+    return { message: `Orden de compra #${id} marcada como recibida y stock actualizado.` };
   }
 
-  findAll() { return this.ocRepository.find(); }
-  findOne(id: number) { return this.ocRepository.findOneBy({ id }); }
-  update(id: number, dto: UpdateCompraDto) {
-    const { subtotal, impuestos, total, fechaEmision } = dto;
-    return this.ocRepository.update(id, { subtotal, impuestos, total, fechaEmision });
+  async findAll() {
+    return this.ocRepository.find({
+      relations: { detalles: true },
+    });
   }
-  remove(id: number) { return this.ocRepository.delete(id); }
+
+  async findOne(id: number) {
+    return this.ocRepository.findOne({
+      where: { id },
+      relations: { detalles: true },
+    });
+  }
+
+  async update(id: number, dto: any) {
+    const { proveedorId, ...rest } = dto;
+    await this.ocRepository.update(id, rest);
+    return this.ocRepository.findOne({ where: { id } });
+  }
+
+  async remove(id: number) {
+    await this.ocRepository.delete(id);
+  }
 }
-

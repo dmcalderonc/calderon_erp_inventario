@@ -20,7 +20,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @Controller('requirements')
 @UseGuards(JwtAuthGuard, RolesGuard, ProyectoAccessGuard)
 export class RequirementsController {
-  constructor(private readonly requirementsService: RequirementsService) {}
+  constructor(private readonly requirementsService: RequirementsService,) {}
 
   @Post()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')

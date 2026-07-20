@@ -21,6 +21,6 @@ export class DetalleMovimiento {
   @JoinColumn({ name: 'material_id' })
   material: Material;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column('int')
   cantidad: number;
 }

@@ -26,10 +26,11 @@ export class RequirementDetail {
   @JoinColumn({ name: 'material_id' })
   material: Material;
 
-  @Column({ name: 'cantidad_solicitada', type: 'decimal', precision: 10, scale: 2 })
+  @Column({ name: 'cantidad_solicitada', type: 'int' })
   cantidadSolicitada: number;
 
-  @Column({ name: 'cantidad_despachada', type: 'decimal', precision: 10, scale: 2, default: 0 })
+
+  @Column({ name: 'cantidad_despachada', type: 'int', default: 0 })
   cantidadDespachada: number;
 
   @Column({ type: 'enum', enum: ItemStatus, default: ItemStatus.PENDIENTE })

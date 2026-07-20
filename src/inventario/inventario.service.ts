@@ -12,33 +12,67 @@ export class InventarioService {
     private readonly inventarioRepository: Repository<Inventario>,
   ) {}
 
+  async create(dto: CreateInventarioDto) {
+    const existing = await this.inventarioRepository.findOne({
+      where: { materialId: dto.material_id, bodega_id: dto.bodega_id },
+    });
 
-  create(createInventarioDto: CreateInventarioDto) {
-    console.log("¡Llegó al servicio de inventario!");
+    if (existing) {
+      existing.cantidad_disponible = (existing.cantidad_disponible || 0) + (dto.cantidad_disponible || 0);
+      existing.cantidad_reservada = (existing.cantidad_reservada || 0) + (dto.cantidad_reservada || 0);
+      return this.inventarioRepository.save(existing);
+    }
+
+    const registro = this.inventarioRepository.create({
+      materialId: dto.material_id,
+      bodega_id: dto.bodega_id,
+      cantidad_disponible: dto.cantidad_disponible || 0,
+      cantidad_reservada: dto.cantidad_reservada || 0,
+    });
+    return this.inventarioRepository.save(registro);
   }
 
-  findAll() {
-    return this.inventarioRepository.find();
+  async findAll() {
+    return this.inventarioRepository.find({
+      relations: { material: true, bodega: true },
+    });
   }
 
-  findOne(id: number) {
-    return this.inventarioRepository.findOne({ where: { id } });
+  async findOne(id: number) {
+    const registro = await this.inventarioRepository.findOne({
+      where: { id },
+      relations: { material: true, bodega: true },
+    });
+    if (!registro) {
+      throw new NotFoundException(`Registro de inventario #${id} no encontrado.`);
+    }
+    return registro;
   }
 
-  update(id: number, updateInventarioDto: UpdateInventarioDto) {
-    return this.inventarioRepository.update(id, updateInventarioDto);
+  async update(id: number, dto: UpdateInventarioDto) {
+    await this.findOne(id);
+    await this.inventarioRepository.update(id, dto);
+    return this.findOne(id);
   }
 
-  remove(id: number) {
-    return this.inventarioRepository.delete(id);
+  async remove(id: number) {
+    await this.findOne(id);
+    await this.inventarioRepository.delete(id);
   }
 
-  async getStockByBodega(bodegaId: number): Promise<Inventario[]> {
-    return await this.inventarioRepository.find({ where: { bodega_id: bodegaId } });
+  async getStockByBodega(bodegaId: number) {
+    return this.inventarioRepository.find({
+      where: { bodega_id: bodegaId },
+      relations: { material: true },
+    });
   }
 
-  async getGlobalStockByMaterial(materialId: number): Promise<number> {
-    const stocks = await this.inventarioRepository.find({ where: { material: { id: materialId } } });
-    return stocks.reduce((acc, curr) => acc + (curr.cantidad_disponible || 0) + (curr.cantidad_reservada || 0), 0);
+  async getGlobalStockByMaterial(materialId: number) {
+    const registros = await this.inventarioRepository.find({
+      where: { materialId },
+    });
+    const totalDisponible = registros.reduce((sum, r) => sum + (r.cantidad_disponible || 0), 0);
+    const totalReservada = registros.reduce((sum, r) => sum + (r.cantidad_reservada || 0), 0);
+    return { materialId, totalDisponible, totalReservada, total: totalDisponible + totalReservada };
   }
 }

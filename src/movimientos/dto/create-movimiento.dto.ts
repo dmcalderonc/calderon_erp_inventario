@@ -1,13 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsEnum, IsNumber, IsOptional, IsPositive, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsNumber, IsOptional, IsPositive, IsString, Min, ValidateNested } from 'class-validator';
 import { TipoMovimiento } from '../entities/movimiento-inventario.entity';
 
 export class DetalleMovimientoDto {
   @IsNumber()
   materialId?: number;
 
-  @IsNumber()
-  @IsPositive()
+  @IsInt()
+  @Min(1)
   cantidad?: number;
 }
 
@@ -29,6 +29,6 @@ export class CreateMovimientoDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => DetalleMovimientoDto) 
+  @Type(() => DetalleMovimientoDto)
   detalles?: DetalleMovimientoDto[];
 }

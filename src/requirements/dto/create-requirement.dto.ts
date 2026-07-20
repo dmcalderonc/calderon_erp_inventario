@@ -1,19 +1,19 @@
-import { IsUUID, IsArray, ValidateNested, IsNumber, Min } from 'class-validator';
+import { IsUUID, IsArray, ValidateNested, IsNumber, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class RequirementDetailDto {
   @IsNumber()
   materialId: number;
 
-  @IsNumber()
-  @Min(0.1)
+  @IsInt()
+  @Min(1)
   cantidadSolicitada: number;
 }
 
 export class CreateRequirementDto {
   @IsUUID()
   proyectoId: string;
-  
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RequirementDetailDto)
