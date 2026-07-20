@@ -8,8 +8,8 @@ export class PdfService {
   private getPdfMake() {
     if (!this.pdfMake) {
       const pdfMake = eval('require("pdfmake/build/pdfmake")');
-      const pdfFonts = eval('require("pdfmake/build/vfs_fonts")');
-      pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
+      const helvetica = eval('require("pdfmake/build/standard-fonts/Helvetica")');
+      pdfMake.vfs = Object.assign({}, pdfMake.vfs || {}, helvetica.vfs);
       this.pdfMake = pdfMake;
     }
     return this.pdfMake;
