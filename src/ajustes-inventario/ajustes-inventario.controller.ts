@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { AjustesInventarioService } from './ajustes-inventario.service';
 import { CreateAjusteInventarioDto } from './dto/create-ajustes-inventario.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -10,7 +10,13 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class AjustesInventarioController {
   constructor(
     private readonly ajustesInventarioService: AjustesInventarioService,
-  ) {}
+ ) {}
+
+  @Get()
+  @Roles('ADMIN', 'BODEGUERO')
+  findAll() {
+    return this.ajustesInventarioService.findAll();
+  }
 
   @Post()
   @Roles('ADMIN', 'BODEGUERO')

@@ -13,6 +13,13 @@ export class AjustesInventarioService {
     private readonly auditoriaService: AuditoriaService,
   ) { }
 
+  findAll() {
+    return this.dataSource.getRepository(AjusteInventario).find({
+      relations: ['bodega', 'detalles', 'detalles.material'],
+      order: { fechaAjuste: 'DESC' },
+    });
+  }
+
   async ejecutarAjusteFisico(createAjusteDto: CreateAjusteInventarioDto, usuarioId: string) {
     const queryRunner = this.dataSource.createQueryRunner();
 
