@@ -22,6 +22,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { SolicitudesCompraModule } from './solicitudes-compra/solicitudes-compra.module';
 import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
 import { DespachosModule } from './despachos/despachos.module';
+import { UnidadesMedidaModule } from './unidades-medida/unidades-medida.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { DespachosModule } from './despachos/despachos.module';
     SolicitudesCompraModule,
     CotizacionesModule,
     DespachosModule,
+    UnidadesMedidaModule,
   ],
 })
 export class AppModule {}

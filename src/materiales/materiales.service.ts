@@ -5,6 +5,7 @@ import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
 import { Material } from './material.entity';
 import { Categoria } from '../categorias/categoria.entity';
+import { UnidadMedida } from '../unidades-medida/unidad-medida.entity';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 
 @Injectable()
@@ -12,6 +13,8 @@ export class MaterialesService {
   constructor(
     @InjectRepository(Material)
     private readonly materialRepository: Repository<Material>,
+    @InjectRepository(UnidadMedida)
+    private readonly unidadMedidaRepository: Repository<UnidadMedida>,
     private readonly dataSource: DataSource,
     private readonly auditoriaService: AuditoriaService,
   ) { }
@@ -29,6 +32,14 @@ export class MaterialesService {
 
       if (!categoria) {
         throw new NotFoundException(`La categoría con ID ${createMaterialDto.categoria_id} no existe.`);
+      }
+
+      const unidadMedida = await queryRunner.manager.findOne(UnidadMedida, {
+        where: { id: createMaterialDto.unidad_medida_id },
+      });
+
+      if (!unidadMedida) {
+        throw new NotFoundException(`La unidad de medida con ID ${createMaterialDto.unidad_medida_id} no existe.`);
       }
 
       const ultimoMaterial = await queryRunner.manager.findOne(Material, {
@@ -54,7 +65,7 @@ export class MaterialesService {
         nombre: createMaterialDto.nombre,
         descripcion: createMaterialDto.descripcion,
         sku: nuevoSku,
-        unidad_medida: createMaterialDto.unidad_medida,
+        unidadMedida: unidadMedida,
         categoria: categoria,
       });
 
@@ -90,6 +101,7 @@ export class MaterialesService {
     return await this.materialRepository.find({
       relations: {
         categoria: true,
+        unidadMedida: true,
       },
     });
   }
@@ -99,6 +111,7 @@ export class MaterialesService {
       where: { id },
       relations: {
         categoria: true,
+        unidadMedida: true,
       },
     });
 

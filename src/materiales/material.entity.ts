@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Categoria } from '../categorias/categoria.entity';
+import { UnidadMedida } from '../unidades-medida/unidad-medida.entity';
 
 @Entity('materiales')
 export class Material {
@@ -13,10 +14,11 @@ export class Material {
   descripcion: string;
 
   @Column({ unique: true })
-  sku: string; 
+  sku: string;
 
-  @Column({ type: 'enum', enum: ['U', 'KG', 'M', 'M2'] })
-  unidad_medida: string;
+  @ManyToOne(() => UnidadMedida, (unidad) => unidad.materiales, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'unidad_medida_id' })
+  unidadMedida: UnidadMedida;
 
   @ManyToOne(() => Categoria, (categoria) => categoria.materiales, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'categoria_id' })

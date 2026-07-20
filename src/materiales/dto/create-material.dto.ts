@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsEnum, IsOptional, IsInt } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsInt } from 'class-validator';
 
 export class CreateMaterialDto {
   @IsNotEmpty()
@@ -10,8 +10,8 @@ export class CreateMaterialDto {
   descripcion?: string;
 
   @IsNotEmpty()
-  @IsEnum(['U', 'KG', 'M', 'M2'], { message: 'Unidad de medida no válida' })
-  unidad_medida: string;
+  @IsInt({ message: 'La unidad de medida debe ser un ID válido' })
+  unidad_medida_id: number;
 
   @IsNotEmpty()
   @IsInt()
