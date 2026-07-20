@@ -81,7 +81,10 @@ export class ComprasService {
 
   findAll() { return this.ocRepository.find(); }
   findOne(id: number) { return this.ocRepository.findOneBy({ id }); }
-  update(id: number, dto: UpdateCompraDto) { return this.ocRepository.update(id, dto); }
+  update(id: number, dto: UpdateCompraDto) {
+    const { subtotal, impuestos, total, fechaEmision } = dto;
+    return this.ocRepository.update(id, { subtotal, impuestos, total, fechaEmision });
+  }
   remove(id: number) { return this.ocRepository.delete(id); }
 }
 
