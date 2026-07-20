@@ -15,7 +15,7 @@ export class AjustesInventarioService {
 
   findAll() {
     return this.dataSource.getRepository(AjusteInventario).find({
-      relations: ['bodega', 'detalles', 'detalles.material'],
+      relations: { bodega: true, detalles: { material: true } },
       order: { fechaAjuste: 'DESC' },
     });
   }
