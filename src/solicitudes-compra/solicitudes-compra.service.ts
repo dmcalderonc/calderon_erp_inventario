@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException, InternalServerErrorE
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SolicitudCompra, EstadoSolicitud } from './entities/solicitud-compra.entity';
+import { CreateSolicitudesCompraDto } from './dto/create-solicitudes-compra.dto';
 
 @Injectable()
 export class SolicitudesCompraService {
@@ -9,6 +10,22 @@ export class SolicitudesCompraService {
     @InjectRepository(SolicitudCompra)
     private readonly solicitudRepository: Repository<SolicitudCompra>,
   ) { }
+
+  async create(dto: CreateSolicitudesCompraDto): Promise<SolicitudCompra> {
+    const codigo = `SC-${Date.now()}`;
+    const solicitud = this.solicitudRepository.create({
+      codigo,
+      proyectoId: dto.proyectoId,
+      usuarioSolicitanteId: dto.usuarioSolicitanteId,
+      nivelPrioridad: (dto.nivelPrioridad as any) || 'MEDIA',
+      estado: EstadoSolicitud.PENDIENTE,
+      detalles: dto.detalles.map(d => ({
+        materialId: d.materialId,
+        cantidadRequerida: d.cantidadRequerida,
+      })),
+    });
+    return await this.solicitudRepository.save(solicitud);
+  }
 
   async findAll(estado?: EstadoSolicitud, proyectoId?: string): Promise<SolicitudCompra[]> {
     const query = this.solicitudRepository.createQueryBuilder('solicitud')

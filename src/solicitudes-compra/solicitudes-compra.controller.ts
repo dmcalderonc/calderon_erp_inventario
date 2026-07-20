@@ -10,6 +10,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { SolicitudesCompraService } from './solicitudes-compra.service';
+import { CreateSolicitudesCompraDto } from './dto/create-solicitudes-compra.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { ProyectoAccessGuard } from '../auth/guards/ProyectoAccessGuard';
@@ -20,6 +21,12 @@ import { EstadoSolicitud } from './entities/solicitud-compra.entity';
 @UseGuards(JwtAuthGuard, RolesGuard, ProyectoAccessGuard)
 export class SolicitudesCompraController {
   constructor(private readonly solicitudesService: SolicitudesCompraService) {}
+
+  @Post()
+  @Roles('ADMIN', 'SOLICITANTE')
+  create(@Body() createDto: CreateSolicitudesCompraDto) {
+    return this.solicitudesService.create(createDto);
+  }
 
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
