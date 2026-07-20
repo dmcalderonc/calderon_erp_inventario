@@ -3,8 +3,8 @@ import { IsArray, IsEnum, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Va
 import { TipoMovimiento } from '../entities/movimiento-inventario.entity';
 
 export class DetalleMovimientoDto {
-  @IsUUID()
-  materialId?: string;
+  @IsNumber()
+  materialId?: number;
 
   @IsNumber()
   @IsPositive()

@@ -14,8 +14,8 @@ export class DetalleMovimiento {
   @JoinColumn({ name: 'movimiento_id' })
   movimiento: MovimientoInventario;
 
-  @Column({ name: 'material_id', type: 'uuid' })
-  materialId: string;
+  @Column({ name: 'material_id', type: 'integer' })
+  materialId: number;
 
   @ManyToOne(() => Material)
   @JoinColumn({ name: 'material_id' })

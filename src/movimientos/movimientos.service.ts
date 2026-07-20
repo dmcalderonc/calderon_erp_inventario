@@ -58,6 +58,8 @@ export class MovimientosService {
       const movimiento = queryRunner.manager.create(MovimientoInventario, {
         tipo: dto.tipo,
         observaciones: dto.observaciones,
+        bodegaOrigenId: dto.bodegaOrigenId,
+        bodegaDestinoId: dto.bodegaDestinoId,
         usuarioId: usuarioId,
         estado: EstadoMovimiento.PROCESADO,
       } as any);
@@ -68,7 +70,7 @@ export class MovimientosService {
 
       for (const detalleDto of detalles) {
         const cantidad = detalleDto.cantidad as number;
-        const materialId = detalleDto.materialId as string;
+        const materialId = detalleDto.materialId as number;
 
         const detalle = queryRunner.manager.create(DetalleMovimiento, {
           movimientoId: savedMovimiento.id,
@@ -87,7 +89,7 @@ export class MovimientosService {
           stockOrigen = await queryRunner.manager.findOne(Inventario, {
             where: {
               bodega: { id: dto.bodegaOrigenId },
-              material: { id: Number(materialId) },
+              material: { id: materialId },
             },
             lock: { mode: 'pessimistic_write' },
           });
@@ -109,7 +111,7 @@ export class MovimientosService {
           stockDestino = await queryRunner.manager.findOne(Inventario, {
             where: {
               bodega: { id: dto.bodegaDestinoId },
-              material: { id: Number(materialId) },
+              material: { id: materialId },
             },
             lock: { mode: 'pessimistic_write' },
           });
@@ -117,7 +119,7 @@ export class MovimientosService {
           if (!stockDestino) {
             stockDestino = queryRunner.manager.create(Inventario, {
               bodega_id: dto.bodegaDestinoId,
-              material_id: Number(materialId),
+              material_id: materialId,
               cantidad_disponible: 0,
               cantidad_reservada: 0,
             });
