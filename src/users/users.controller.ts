@@ -8,6 +8,7 @@ import {
   Put,
   Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -32,6 +33,21 @@ export class UsersController {
   @Roles('ADMIN')
   async findAll(): Promise<User[]> {
     return await this.usersService.findAll();
+  }
+
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  async getProfile(@Req() req: any): Promise<User> {
+    return await this.usersService.findOne(req.user.id);
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(
+    @Req() req: any,
+    @Body() body: { fotoPerfil?: string },
+  ): Promise<User> {
+    return await this.usersService.updateProfile(req.user.id, body.fotoPerfil || undefined);
   }
 
   @Get(':id')

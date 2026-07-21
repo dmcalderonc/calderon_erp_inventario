@@ -23,4 +23,8 @@ export class CreateUserDto {
   @IsInt()
   @IsOptional()
   bodega_id?: number;
+
+  @IsOptional()
+  @IsString()
+  fotoPerfil?: string;
 }

@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './user.entity';
+import { User, UserRole } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -42,8 +42,48 @@ export class UsersService {
         password: true,
         rol: true,
         estado: true,
+        fotoPerfil: true,
+        googleId: true,
+        avatarUrl: true,
       },
     });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { email } });
+  }
+
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { googleId } });
+  }
+
+  async createFromGoogle(data: {
+    email: string;
+    nombre: string;
+    googleId: string;
+    avatarUrl?: string;
+  }): Promise<User> {
+    const newUser = this.userRepository.create({
+      email: data.email,
+      nombre: data.nombre,
+      googleId: data.googleId,
+      avatarUrl: data.avatarUrl,
+      rol: UserRole.SOLICITANTE,
+    });
+    return await this.userRepository.save(newUser);
+  }
+
+  async linkGoogleId(userId: string, googleId: string, avatarUrl?: string): Promise<User> {
+    const user = await this.findOne(userId);
+    user.googleId = googleId;
+    if (avatarUrl) user.avatarUrl = avatarUrl;
+    return await this.userRepository.save(user);
+  }
+
+  async unlinkGoogleId(userId: string): Promise<User> {
+    const user = await this.findOne(userId);
+    user.googleId = undefined;
+    return await this.userRepository.save(user);
   }
 
   async findAll(): Promise<User[]> {
@@ -78,6 +118,7 @@ export class UsersService {
       ...(updateUserDto.email && { email: updateUserDto.email }),
       ...(updateUserDto.password && { password: updateUserDto.password }),
       ...(updateUserDto.rol && { rol: updateUserDto.rol }),
+      ...(updateUserDto.fotoPerfil !== undefined && { fotoPerfil: updateUserDto.fotoPerfil || undefined }),
     };
 
     const updatedUser = this.userRepository.merge(user, dataToUpdate);
@@ -89,5 +130,11 @@ export class UsersService {
     const userDeleted = { id: user.id, nombre: user.nombre };
     await this.userRepository.remove(user);
     return userDeleted; 
+  }
+
+  async updateProfile(id: string, fotoPerfil?: string): Promise<User> {
+    const user = await this.findOne(id);
+    user.fotoPerfil = fotoPerfil || undefined;
+    return await this.userRepository.save(user);
   }
 }

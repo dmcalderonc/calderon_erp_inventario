@@ -18,7 +18,7 @@ export class User {
   @Column({ type: 'varchar', unique: true })
   email?: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', nullable: true })
   password?: string;
 
 
@@ -27,6 +27,15 @@ export class User {
 
   @Column({ type: 'boolean', default: true })
   estado?: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  fotoPerfil?: string;
+
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  googleId?: string;
+
+  @Column({ type: 'text', nullable: true })
+  avatarUrl?: string;
 
   @CreateDateColumn()
   fechaCreacion?: Date;
