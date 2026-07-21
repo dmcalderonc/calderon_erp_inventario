@@ -46,6 +46,7 @@ export class ComprasService {
     const nuevaOC = this.ocRepository.create({
       ...rest,
       codigo,
+      fechaEmision: rest.fechaEmision || new Date().toISOString().split('T')[0],
       estado: 'BORRADOR',
       detalles: (detalles || []).map((d: any) => ({
         materialId: Number(d.materialId),
