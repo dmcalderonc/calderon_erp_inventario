@@ -3,6 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
+import { UserRole } from '../users/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -10,6 +12,22 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
   ) {}
+
+  async register(registerDto: RegisterDto) {
+    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+
+    const user = await this.usersService.create({
+      username: registerDto.username,
+      email: registerDto.email,
+      password: hashedPassword,
+      rol: UserRole.SOLICITANTE,
+    });
+
+    return {
+      message: 'Usuario registrado exitosamente',
+      user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol },
+    };
+  }
 
   async login(loginDto: LoginDto) {
     if (!loginDto.email || !loginDto.password) {

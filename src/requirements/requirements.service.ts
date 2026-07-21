@@ -121,6 +121,29 @@ export class RequirementsService {
 
         req.estado = RequirementStatus.ATENDIDO;
 
+      } else if (updateDto.estado === RequirementStatus.RECHAZADO && req.estado !== RequirementStatus.RECHAZADO && req.estado !== RequirementStatus.ATENDIDO) {
+        if (req.estado === RequirementStatus.APROBADO || req.estado === RequirementStatus.PARCIALMENTE_ATENDIDO) {
+          for (const det of req.detalles) {
+            const cantidadReservada = Number(det.cantidadDespachada || det.cantidadSolicitada);
+
+            await queryRunner.manager.decrement(
+              Inventario,
+              { materialId: Number(det.materialId), bodega_id: this.BODEGA_CENTRAL_ID },
+              'cantidad_reservada',
+              cantidadReservada,
+            );
+
+            await queryRunner.manager.increment(
+              Inventario,
+              { materialId: Number(det.materialId), bodega_id: this.BODEGA_CENTRAL_ID },
+              'cantidad_disponible',
+              cantidadReservada,
+            );
+          }
+        }
+
+        req.estado = RequirementStatus.RECHAZADO;
+
       } else {
         throw new BadRequestException(
           `Transición no válida: ${req.estado} → ${updateDto.estado}`,
