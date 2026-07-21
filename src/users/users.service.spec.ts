@@ -49,7 +49,7 @@ describe('UsersService', () => {
         password: '123',
         rol: UserRole.SOLICITANTE,
       };
-      const savedUser = { id: 1, ...mappedUser };
+      const savedUser = { id: 'uuid-123', ...mappedUser };
 
       mockUserRepository.findOne.mockResolvedValue(null);
       mockUserRepository.create.mockReturnValue(mappedUser);
@@ -73,7 +73,7 @@ describe('UsersService', () => {
         rol: UserRole.SOLICITANTE,
       };
       mockUserRepository.findOne.mockResolvedValue({
-        id: 1,
+        id: 'uuid-123',
         email: 'existe@test.com',
       });
 
@@ -86,7 +86,7 @@ describe('UsersService', () => {
 
   describe('findByEmailForLogin', () => {
     it('debe retornar un usuario si se encuentra por email', async () => {
-      const usuario = { id: 1, email: 'login@test.com' };
+      const usuario = { id: 'uuid-123', email: 'login@test.com' };
       mockUserRepository.findOne.mockResolvedValue(usuario);
 
       const resultado = await service.findByEmailForLogin('login@test.com');
@@ -108,7 +108,7 @@ describe('UsersService', () => {
 
   describe('findAll', () => {
     it('debe retornar un arreglo de usuarios', async () => {
-      const usuarios = [{ id: 1, nombre: 'test' }];
+      const usuarios = [{ id: 'uuid-123', nombre: 'test' }];
       mockUserRepository.find.mockResolvedValue(usuarios);
 
       const resultado = await service.findAll();
@@ -120,33 +120,33 @@ describe('UsersService', () => {
 
   describe('findOne', () => {
     it('debe retornar un usuario si existe', async () => {
-      const usuario = { id: 1, nombre: 'test' };
+      const usuario = { id: 'uuid-123', nombre: 'test' };
       mockUserRepository.findOne.mockResolvedValue(usuario);
 
-      const resultado = await service.findOne(1);
+      const resultado = await service.findOne('uuid-123');
 
       expect(resultado).toEqual(usuario);
       expect(mockUserRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 1 },
+        where: { id: 'uuid-123' },
       });
     });
 
     it('debe lanzar NotFoundException si el usuario no existe', async () => {
       mockUserRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.findOne(99)).rejects.toThrow(NotFoundException);
-      await expect(service.findOne(99)).rejects.toThrow(
-        'Usuario con ID 99 no encontrado',
+      await expect(service.findOne('uuid-inexistente')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('uuid-inexistente')).rejects.toThrow(
+        'Usuario con ID uuid-inexistente no encontrado',
       );
     });
   });
 
   describe('update', () => {
     it('debe actualizar un usuario si no se cambia el email', async () => {
-      const id = 1;
+      const id = 'uuid-123';
       const dto = { username: 'nombreActualizado' };
       const usuarioExistente = {
-        id: 1,
+        id: 'uuid-123',
         nombre: 'viejo',
         email: 'test@test.com',
       };
@@ -168,10 +168,10 @@ describe('UsersService', () => {
     });
 
     it('debe actualizar un usuario y permitir cambio de email si no está en uso', async () => {
-      const id = 1;
+      const id = 'uuid-123';
       const dto = { email: 'nuevo@test.com' };
       const usuarioExistente = {
-        id: 1,
+        id: 'uuid-123',
         nombre: 'user',
         email: 'viejo@test.com',
       };
@@ -193,17 +193,17 @@ describe('UsersService', () => {
     });
 
     it('debe lanzar BadRequestException si se intenta cambiar a un email que ya está en uso', async () => {
-      const id = 1;
+      const id = 'uuid-123';
       const dto = { email: 'ocupado@test.com' };
       const usuarioExistente = {
-        id: 1,
+        id: 'uuid-123',
         nombre: 'user',
         email: 'viejo@test.com',
       };
 
       mockUserRepository.findOne
         .mockResolvedValueOnce(usuarioExistente)
-        .mockResolvedValueOnce({ id: 2, email: 'ocupado@test.com' });
+        .mockResolvedValueOnce({ id: 'uuid-456', email: 'ocupado@test.com' });
 
       await expect(service.update(id, dto)).rejects.toThrow(
         BadRequestException,
@@ -217,7 +217,7 @@ describe('UsersService', () => {
   describe('remove', () => {
     it('debe eliminar un usuario y retornar su id y nombre', async () => {
       const usuarioExistente = {
-        id: 1,
+        id: 'uuid-123',
         nombre: 'usuarioBorrar',
         email: 'test@test.com',
       };
@@ -225,9 +225,9 @@ describe('UsersService', () => {
       mockUserRepository.findOne.mockResolvedValue(usuarioExistente);
       mockUserRepository.remove.mockResolvedValue(usuarioExistente);
 
-      const resultado = await service.remove(1);
+      const resultado = await service.remove('uuid-123');
 
-      expect(resultado).toEqual({ id: 1, nombre: 'usuarioBorrar' });
+      expect(resultado).toEqual({ id: 'uuid-123', nombre: 'usuarioBorrar' });
       expect(mockUserRepository.remove).toHaveBeenCalledWith(usuarioExistente);
     });
   });

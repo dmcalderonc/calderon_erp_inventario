@@ -43,7 +43,7 @@ describe('UsersController', () => {
         rol: UserRole.ADMIN,
       };
       const resultado = {
-        id: 1,
+        id: 'uuid-123',
         nombre: 'testuser',
         email: 'test@test.com',
         rol: 'ADMIN',
@@ -57,7 +57,7 @@ describe('UsersController', () => {
 
   describe('findAll', () => {
     it('debe retornar un arreglo de usuarios', async () => {
-      const resultado = [{ id: 1, nombre: 'testuser', email: 'test@test.com' }];
+      const resultado = [{ id: 'uuid-123', nombre: 'testuser', email: 'test@test.com' }];
       mockUsersService.findAll.mockResolvedValue(resultado);
 
       expect(await controller.findAll()).toEqual(resultado);
@@ -66,9 +66,9 @@ describe('UsersController', () => {
   });
 
   describe('findOne', () => {
-    it('debe retornar un usuario por ID numérico', async () => {
-      const id = 1;
-      const resultado = { id: 1, nombre: 'testuser', email: 'test@test.com' };
+    it('debe retornar un usuario por ID', async () => {
+      const id = 'uuid-123';
+      const resultado = { id: 'uuid-123', nombre: 'testuser', email: 'test@test.com' };
       mockUsersService.findOne.mockResolvedValue(resultado);
 
       expect(await controller.findOne(id)).toEqual(resultado);
@@ -78,10 +78,10 @@ describe('UsersController', () => {
 
   describe('update', () => {
     it('debe actualizar un usuario', async () => {
-      const id = 1;
+      const id = 'uuid-123';
       const dto = { username: 'nuevoNombre' };
       const resultado = {
-        id: 1,
+        id: 'uuid-123',
         nombre: 'nuevoNombre',
         email: 'test@test.com',
       };
@@ -94,12 +94,12 @@ describe('UsersController', () => {
 
   describe('remove', () => {
     it('debe eliminar un usuario y retornar el registro borrado', async () => {
-      const idStr = '1';
-      const resultado = { id: 1, nombre: 'testuser' };
+      const idStr = 'uuid-123';
+      const resultado = { id: 'uuid-123', nombre: 'testuser' };
       mockUsersService.remove.mockResolvedValue(resultado);
 
       expect(await controller.remove(idStr)).toEqual(resultado);
-      expect(service.remove).toHaveBeenCalledWith(1);
+      expect(service.remove).toHaveBeenCalledWith(idStr);
     });
   });
 });

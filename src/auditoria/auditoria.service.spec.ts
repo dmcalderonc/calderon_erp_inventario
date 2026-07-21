@@ -7,8 +7,12 @@ describe('AuditoriaService', () => {
   let service: AuditoriaService;
 
   class MockAuditoriaModel {
-    constructor(private data: any) {}
-    save = jest.fn().mockResolvedValue(this.data);
+    data: any;
+    save: jest.Mock;
+    constructor(data: any) {
+      this.data = data;
+      this.save = jest.fn().mockResolvedValue(data);
+    }
   }
 
   beforeEach(async () => {

@@ -65,7 +65,7 @@ describe('MaterialesService', () => {
     const dto = {
       nombre: 'Tubo',
       descripcion: 'Vidrio',
-      unidad_medida: 'Und',
+      unidad_medida_id: 1,
       categoria_id: 1,
     };
     const usuarioId = 99;

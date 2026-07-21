@@ -18,7 +18,7 @@ describe('CotizacionesService', () => {
 
   describe('create', () => {
     it('debe crear una cotización', () => {
-      const dto = { proveedorId: 1, total: 100 };
+      const dto = { solicitudId: 1, proveedorId: 1, precioOfertadoTotal: 100 };
       const resultado = service.create(dto);
       expect(resultado).toBeDefined();
     });
@@ -40,7 +40,7 @@ describe('CotizacionesService', () => {
 
   describe('update', () => {
     it('debe actualizar una cotización', () => {
-      const resultado = service.update(1, { total: 150 });
+      const resultado = service.update(1, { precioOfertadoTotal: 150 });
       expect(resultado).toBeDefined();
     });
   });

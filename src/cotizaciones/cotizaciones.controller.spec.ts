@@ -36,7 +36,7 @@ describe('CotizacionesController', () => {
 
   describe('create', () => {
     it('debe crear una cotización', async () => {
-      const dto = { proveedorId: 1, total: 100 };
+      const dto = { solicitudId: 1, proveedorId: 1, precioOfertadoTotal: 100 };
       const resultado = { id: 1, ...dto };
       mockCotizacionesService.create.mockResolvedValue(resultado);
 
@@ -47,7 +47,7 @@ describe('CotizacionesController', () => {
 
   describe('findAll', () => {
     it('debe retornar todas las cotizaciones', async () => {
-      const resultado = [{ id: 1, total: 100 }];
+      const resultado = [{ id: 1, precioOfertadoTotal: 100 }];
       mockCotizacionesService.findAll.mockResolvedValue(resultado);
 
       expect(await controller.findAll()).toEqual(resultado);
@@ -58,7 +58,7 @@ describe('CotizacionesController', () => {
   describe('findOne', () => {
     it('debe retornar una cotización por ID', async () => {
       const id = '1';
-      const resultado = { id: 1, total: 100 };
+      const resultado = { id: 1, precioOfertadoTotal: 100 };
       mockCotizacionesService.findOne.mockResolvedValue(resultado);
 
       expect(await controller.findOne(id)).toEqual(resultado);
@@ -69,7 +69,7 @@ describe('CotizacionesController', () => {
   describe('update', () => {
     it('debe actualizar una cotización', async () => {
       const id = '1';
-      const dto = { total: 150 };
+      const dto = { precioOfertadoTotal: 150 };
       const resultado = { id: 1, ...dto };
       mockCotizacionesService.update.mockResolvedValue(resultado);
 

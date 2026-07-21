@@ -50,9 +50,9 @@ export class UsersService {
     return await this.userRepository.find();
   }
 
-  async findOne(id: number): Promise<User> {
+  async findOne(id: string): Promise<User> {
     const user = await this.userRepository.findOne({
-      where: { id: id as any },
+      where: { id },
     });
 
     if (!user) {
@@ -61,12 +61,12 @@ export class UsersService {
     return user;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
 
     if (updateUserDto.email && updateUserDto.email !== user.email) {
       const emailExists = await this.userRepository.findOne({
-        where: { email: updateUserDto.email } as any
+        where: { email: updateUserDto.email },
       });
       if (emailExists) {
         throw new BadRequestException('El correo electrónico ya está en uso por otro usuario.');
@@ -84,7 +84,7 @@ export class UsersService {
     return await this.userRepository.save(updatedUser);
   }
 
-  async remove(id: number): Promise<any> {
+  async remove(id: string): Promise<any> {
     const user = await this.findOne(id);
     const userDeleted = { id: user.id, nombre: user.nombre };
     await this.userRepository.remove(user);

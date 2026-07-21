@@ -5,7 +5,6 @@ import {
   Body,
   Patch,
   Param,
-  ParseIntPipe,
   Put,
   Delete,
   UseGuards,
@@ -37,14 +36,23 @@ export class UsersController {
 
   @Get(':id')
   @Roles('ADMIN')
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<User> {
+  async findOne(@Param('id') id: string): Promise<User> {
     return await this.usersService.findOne(id);
+  }
+
+  @Patch(':id')
+  @Roles('ADMIN')
+  async update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<User> {
+    return await this.usersService.update(id, updateUserDto);
   }
 
   @Put(':id')
   @Roles('ADMIN')
-  async update(
-    @Param('id', ParseIntPipe) id: number,
+  async updatePut(
+    @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<User> {
     return await this.usersService.update(id, updateUserDto);
@@ -53,6 +61,6 @@ export class UsersController {
   @Delete(':id')
   @Roles('ADMIN')
   remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+    return this.usersService.remove(id);
   }
 }

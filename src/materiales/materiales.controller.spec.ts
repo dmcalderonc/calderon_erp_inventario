@@ -39,7 +39,7 @@ describe('MaterialesController', () => {
 
   describe('create', () => {
     it('debe crear un material pasando el usuarioId', async () => {
-      const dto = { nombre: 'Tubo de Ensayo', descripcion: 'Vidrio', unidad_medida: 'Unidad', categoria_id: 1 };
+      const dto = { nombre: 'Tubo de Ensayo', descripcion: 'Vidrio', unidad_medida_id: 1, categoria_id: 1 };
       const resultado = { id: 1, sku: 'VID-0001', ...dto };
       mockMaterialesService.create.mockResolvedValue(resultado);
 
