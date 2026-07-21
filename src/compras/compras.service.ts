@@ -20,7 +20,7 @@ export class ComprasService {
   ) { }
 
   async create(dto: any) {
-    const { solicitudId, ...rest } = dto;
+    const { solicitudId, detalles, ...rest } = dto;
 
     if (solicitudId) {
       const cotizacion = await this.cotizacionRepository.findOne({
@@ -36,9 +36,22 @@ export class ComprasService {
       }
     }
 
+    const last = await this.ocRepository.findOne({
+      where: {},
+      order: { id: 'DESC' },
+    });
+    const nextNum = (last?.id ?? 0) + 1;
+    const codigo = `OC-${String(nextNum).padStart(5, '0')}`;
+
     const nuevaOC = this.ocRepository.create({
       ...rest,
+      codigo,
       estado: 'BORRADOR',
+      detalles: (detalles || []).map((d: any) => ({
+        materialId: Number(d.materialId),
+        cantidad: Number(d.cantidad),
+        precioUnitario: Number(d.precioUnitario),
+      })),
     });
 
     return this.ocRepository.save(nuevaOC);
@@ -95,14 +108,14 @@ export class ComprasService {
 
   async findAll() {
     return this.ocRepository.find({
-      relations: { detalles: true },
+      relations: { detalles: true, proveedor: true },
     });
   }
 
   async findOne(id: number) {
     return this.ocRepository.findOne({
       where: { id },
-      relations: { detalles: true },
+      relations: { detalles: true, proveedor: true },
     });
   }
 

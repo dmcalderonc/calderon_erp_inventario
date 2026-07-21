@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { DetalleOrdenCompra } from './detalle-orden-compra.entity';
+import { Proveedor } from '../../proveedores/proveedore.entity';
 
 @Entity('ordenes_compra')
 export class OrdenCompra {
@@ -8,6 +9,13 @@ export class OrdenCompra {
 
   @Column({ type: 'varchar', length: 20 })
   codigo?: string; 
+
+  @Column({ name: 'proveedor_id', type: 'integer', nullable: true })
+  proveedorId?: number;
+
+  @ManyToOne(() => Proveedor)
+  @JoinColumn({ name: 'proveedor_id' })
+  proveedor?: Proveedor;
 
   @Column({ type: 'date' })
   fechaEmision?: Date;
@@ -28,6 +36,6 @@ export class OrdenCompra {
   @Column('decimal', { precision: 12, scale: 2 })
   total?: number;
 
-  @OneToMany(() => DetalleOrdenCompra, (detalle) => detalle.ordenCompra)
+  @OneToMany(() => DetalleOrdenCompra, (detalle) => detalle.ordenCompra, { cascade: true })
   detalles?: DetalleOrdenCompra[];
 }

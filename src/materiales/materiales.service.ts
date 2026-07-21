@@ -64,6 +64,7 @@ export class MaterialesService {
       const nuevoMaterial = queryRunner.manager.create(Material, {
         nombre: createMaterialDto.nombre,
         descripcion: createMaterialDto.descripcion,
+        imagen: createMaterialDto.imagen,
         sku: nuevoSku,
         unidadMedida: unidadMedida,
         categoria: categoria,

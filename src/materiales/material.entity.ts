@@ -16,6 +16,9 @@ export class Material {
   @Column({ unique: true })
   sku: string;
 
+  @Column({ type: 'text', nullable: true })
+  imagen: string;
+
   @ManyToOne(() => UnidadMedida, (unidad) => unidad.materiales, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'unidad_medida_id' })
   unidadMedida: UnidadMedida;

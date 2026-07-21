@@ -5,7 +5,9 @@ import { Repository } from 'typeorm';
 import { Proyecto, EstadoProyecto } from '../proyectos/proyecto.entity';
 import { Requirement, RequirementStatus } from '../requirements/entities/requirement.entity';
 import { Inventario } from '../inventario/inventario.entity';
-import { DetalleOrdenCompra } from '../compras/entities/detalle-orden-compra.entity'; 
+import { User } from '../users/user.entity';
+import { Categoria } from '../categorias/categoria.entity';
+import { Material } from '../materiales/material.entity';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 
 @Injectable()
@@ -13,46 +15,48 @@ export class DashboardService {
   constructor(
     @InjectRepository(Proyecto)
     private readonly proyectoRepo: Repository<Proyecto>,
-
     @InjectRepository(Requirement)
     private readonly requirementRepo: Repository<Requirement>,
-
     @InjectRepository(Inventario)
     private readonly inventarioRepo: Repository<Inventario>,
-
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    @InjectRepository(Categoria)
+    private readonly categoriaRepo: Repository<Categoria>,
+    @InjectRepository(Material)
+    private readonly materialRepo: Repository<Material>,
     private readonly auditoriaService: AuditoriaService,
   ) {}
 
   async obtenerKpis() {
     try {
-
       const proyectosActivos = await this.proyectoRepo
         .createQueryBuilder('proyecto')
         .where('proyecto.estado = :estado', { estado: EstadoProyecto.ACTIVO })
         .getCount();
 
-
       const requerimientosPendientesRaw = await this.requirementRepo.query(`
-        SELECT COUNT(*) as count 
-        FROM requerimientos 
-        WHERE estado = 'PENDIENTE'
+        SELECT COUNT(*) as count FROM requerimientos WHERE estado = 'PENDIENTE'
       `);
       const requerimientosPendientes = parseInt(requerimientosPendientesRaw[0]?.count || '0', 10);
 
-
       const stockQuery = await this.inventarioRepo.query(`
-        SELECT SUM(cantidad_disponible) AS "totalStock"
-        FROM stock_bodega
+        SELECT SUM(cantidad_disponible) AS "totalStock" FROM stock_bodega
       `);
       const totalStock = parseFloat(stockQuery[0]?.totalStock || '0');
-      
-
       const totalInventario = totalStock * 10.00;
+
+      const totalUsuarios = await this.userRepo.count();
+      const totalCategorias = await this.categoriaRepo.count();
+      const totalMateriales = await this.materialRepo.count();
 
       return {
         proyectosActivos,
         requerimientosPendientes,
         valorizacionTotalInventario: Number(totalInventario.toFixed(2)),
+        totalUsuarios,
+        totalCategorias,
+        totalMateriales,
       };
     } catch (error) {
       throw new InternalServerErrorException('Error al calcular KPIs del dashboard: ' + error.message);

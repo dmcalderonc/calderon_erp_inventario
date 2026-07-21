@@ -9,6 +9,10 @@ export class CreateMaterialDto {
   @IsString()
   descripcion?: string;
 
+  @IsOptional()
+  @IsString()
+  imagen?: string;
+
   @IsNotEmpty()
   @IsInt({ message: 'La unidad de medida debe ser un ID válido' })
   unidad_medida_id: number;
