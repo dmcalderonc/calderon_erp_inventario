@@ -27,7 +27,7 @@ export class SolicitudesCompraService {
     return await this.solicitudRepository.save(solicitud);
   }
 
-  async findAll(estado?: EstadoSolicitud, proyectoId?: string): Promise<SolicitudCompra[]> {
+  async findAll(estado?: EstadoSolicitud, proyectoId?: string, userId?: string, rol?: string): Promise<SolicitudCompra[]> {
     const query = this.solicitudRepository.createQueryBuilder('solicitud')
       .leftJoinAndSelect('solicitud.detalles', 'detalles')
       .leftJoinAndSelect('solicitud.cotizaciones', 'cotizaciones')
@@ -39,6 +39,9 @@ export class SolicitudesCompraService {
     }
     if (proyectoId) {
       query.andWhere('solicitud.proyectoId = :proyectoId', { proyectoId });
+    }
+    if ((rol === 'COMPRADOR' || rol === 'SOLICITANTE') && userId) {
+      query.andWhere('solicitud.usuarioSolicitanteId = :userId', { userId });
     }
 
     return await query.orderBy('solicitud.fechaSolicitud', 'DESC').getMany();

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { CotizacionesService } from './cotizaciones.service';
 import { CreateCotizacioneDto } from './dto/create-cotizacione.dto';
@@ -22,14 +23,14 @@ export class CotizacionesController {
 
   @Post()
   @Roles('ADMIN', 'COMPRADOR')
-  create(@Body() createCotizacioneDto: CreateCotizacioneDto) {
-    return this.cotizacionesService.create(createCotizacioneDto);
+  create(@Body() createCotizacioneDto: CreateCotizacioneDto, @Req() req: any) {
+    return this.cotizacionesService.create(createCotizacioneDto, req.user.id);
   }
 
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  findAll() {
-    return this.cotizacionesService.findAll();
+  findAll(@Req() req: any) {
+    return this.cotizacionesService.findAll(req.user.id, req.user.rol);
   }
 
   @Get(':id')

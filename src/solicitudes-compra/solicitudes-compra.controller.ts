@@ -31,10 +31,11 @@ export class SolicitudesCompraController {
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   findAll(
+    @Req() req: any,
     @Query('estado') estado?: EstadoSolicitud,
     @Query('proyectoId') proyectoId?: string,
   ) {
-    return this.solicitudesService.findAll(estado, proyectoId);
+    return this.solicitudesService.findAll(estado, proyectoId, req.user.id, req.user.rol);
   }
 
   @Patch(':id')

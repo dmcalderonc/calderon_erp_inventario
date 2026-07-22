@@ -12,13 +12,25 @@ export class CotizacionesService {
     private readonly cotizacionRepository: Repository<Cotizacion>,
   ) {}
 
-  async create(dto: CreateCotizacioneDto): Promise<Cotizacion> {
-    const nueva = this.cotizacionRepository.create(dto);
+  async create(dto: CreateCotizacioneDto, usuarioId?: string): Promise<Cotizacion> {
+    const nueva = this.cotizacionRepository.create({
+      solicitudId: dto.solicitudId,
+      proveedorId: dto.proveedorId,
+      precioOfertadoTotal: dto.precioOfertadoTotal,
+      archivoRespaldoUrl: dto.archivoRespaldoUrl,
+      estado: dto.estado,
+      ...(usuarioId && { usuarioId }),
+    });
     return await this.cotizacionRepository.save(nueva);
   }
 
-  async findAll(): Promise<Cotizacion[]> {
+  async findAll(userId?: string, rol?: string): Promise<Cotizacion[]> {
+    const where: any = {};
+    if (rol === 'COMPRADOR' && userId) {
+      where.usuarioId = userId;
+    }
     return await this.cotizacionRepository.find({
+      where,
       relations: { solicitud: true, proveedor: true },
       order: { id: 'DESC' },
     });

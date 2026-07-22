@@ -23,10 +23,7 @@ export class AuthService {
       rol: UserRole.SOLICITANTE,
     });
 
-    return {
-      message: 'Usuario registrado exitosamente',
-      user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol },
-    };
+    return this.generateLoginResponse(user);
   }
 
   async login(loginDto: LoginDto) {
