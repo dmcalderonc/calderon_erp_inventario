@@ -27,13 +27,13 @@ export class UnidadesMedidaController {
   }
 
   @Get()
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   findAll() {
     return this.unidadesMedidaService.findAll();
   }
 
   @Get(':id')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   findOne(@Param('id') id: string) {
     return this.unidadesMedidaService.findOne(+id);
   }
