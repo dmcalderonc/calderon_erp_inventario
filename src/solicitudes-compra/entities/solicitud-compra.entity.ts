@@ -32,10 +32,10 @@ export class SolicitudCompra {
     @JoinColumn({ name: 'proyecto_id' })
     proyecto: Proyecto;
 
-    @Column({ name: 'usuario_solicitante_id', type: 'uuid' })
+    @Column({ name: 'usuario_solicitante_id', type: 'uuid', nullable: true })
     usuarioSolicitanteId: string;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
     @JoinColumn({ name: 'usuario_solicitante_id' })
     usuarioSolicitante: User;
 

@@ -26,6 +26,7 @@ export class UsersService {
       email: createUserDto.email,
       password: createUserDto.password,
       rol: createUserDto.rol,
+      estado: createUserDto.is_active,
     });
 
     return await this.userRepository.save(newUser);
@@ -118,6 +119,7 @@ export class UsersService {
       ...(updateUserDto.email && { email: updateUserDto.email }),
       ...(updateUserDto.password && { password: updateUserDto.password }),
       ...(updateUserDto.rol && { rol: updateUserDto.rol }),
+      ...(updateUserDto.is_active !== undefined && { estado: updateUserDto.is_active }),
       ...(updateUserDto.fotoPerfil !== undefined && { fotoPerfil: updateUserDto.fotoPerfil || undefined }),
     };
 
