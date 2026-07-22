@@ -67,6 +67,9 @@ export class AuthService {
       email: user.email,
       nombre: user.nombre,
       rol: user.rol,
+      fotoPerfil: user.fotoPerfil || user.avatarUrl || null,
+      googleId: user.googleId || null,
+      avatarUrl: user.avatarUrl || null,
     };
 
     return {
