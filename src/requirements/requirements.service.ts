@@ -61,7 +61,6 @@ export class RequirementsService {
           const cantidadReq = Number(det.cantidadSolicitada);
 
           if (!stock || (stock.cantidad_disponible || 0) < cantidadReq) {
-            await queryRunner.rollbackTransaction();
             throw new BadRequestException(
               `Stock insuficiente para material ${det.materialId}. Disponible: ${stock?.cantidad_disponible || 0}, Requerido: ${cantidadReq}`,
             );
