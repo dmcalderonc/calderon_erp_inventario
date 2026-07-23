@@ -2,26 +2,17 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Material } from '../materiales/material.entity';
-import { Categoria } from '../categorias/categoria.entity';
 
 @Controller('public')
 export class PublicController {
   constructor(
     @InjectRepository(Material)
     private readonly materialRepository: Repository<Material>,
-    @InjectRepository(Categoria)
-    private readonly categoriaRepository: Repository<Categoria>,
   ) {}
-
-  @Get('categorias')
-  async findAllCategorias() {
-    return this.categoriaRepository.find({ order: { nombre: 'ASC' } });
-  }
 
   @Get('materiales')
   async findAll(
     @Query('search') search?: string,
-    @Query('categoria') categoria?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('sort') sort?: string,
@@ -40,10 +31,6 @@ export class PublicController {
         '(LOWER(m.nombre) LIKE :search OR LOWER(m.sku) LIKE :search OR LOWER(m.descripcion) LIKE :search)',
         { search: `%${search.toLowerCase()}%` },
       );
-    }
-
-    if (categoria) {
-      qb.andWhere('categoria.id = :categoriaId', { categoriaId: parseInt(categoria, 10) });
     }
 
     const sortField = sort === 'sku' ? 'm.sku' : sort === 'categoria' ? 'categoria.nombre' : 'm.nombre';

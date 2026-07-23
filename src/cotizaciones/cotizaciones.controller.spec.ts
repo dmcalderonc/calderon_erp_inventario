@@ -39,10 +39,9 @@ describe('CotizacionesController', () => {
       const dto = { solicitudId: 1, proveedorId: 1, precioOfertadoTotal: 100 };
       const resultado = { id: 1, ...dto };
       mockCotizacionesService.create.mockResolvedValue(resultado);
-      const req = { user: { id: 'uuid-1' } };
 
-      expect(await controller.create(dto, req)).toEqual(resultado);
-      expect(service.create).toHaveBeenCalledWith(dto, 'uuid-1');
+      expect(await controller.create(dto)).toEqual(resultado);
+      expect(service.create).toHaveBeenCalledWith(dto);
     });
   });
 
@@ -50,10 +49,9 @@ describe('CotizacionesController', () => {
     it('debe retornar todas las cotizaciones', async () => {
       const resultado = [{ id: 1, precioOfertadoTotal: 100 }];
       mockCotizacionesService.findAll.mockResolvedValue(resultado);
-      const req = { user: { id: 'uuid-1', rol: 'ADMIN' } };
 
-      expect(await controller.findAll(req)).toEqual(resultado);
-      expect(service.findAll).toHaveBeenCalledWith('uuid-1', 'ADMIN');
+      expect(await controller.findAll()).toEqual(resultado);
+      expect(service.findAll).toHaveBeenCalled();
     });
   });
 

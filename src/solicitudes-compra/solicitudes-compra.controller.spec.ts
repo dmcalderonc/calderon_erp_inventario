@@ -49,8 +49,8 @@ describe('SolicitudesCompraController', () => {
       const resultado = [{ id: 1, estado: 'PENDIENTE' }];
       mockSolicitudesService.findAll.mockResolvedValue(resultado);
 
-      expect(await controller.findAll(mockRequest)).toEqual(resultado);
-      expect(service.findAll).toHaveBeenCalledWith(undefined, undefined, 'uuid-usuario', 'ADMIN');
+      expect(await controller.findAll()).toEqual(resultado);
+      expect(service.findAll).toHaveBeenCalledWith(undefined, undefined);
     });
 
     it('debe filtrar por estado y proyectoId', async () => {
@@ -58,9 +58,9 @@ describe('SolicitudesCompraController', () => {
       mockSolicitudesService.findAll.mockResolvedValue(resultado);
 
       expect(
-        await controller.findAll(mockRequest, 'APROBADA' as any, 'uuid-proyecto'),
+        await controller.findAll('APROBADA' as any, 'uuid-proyecto'),
       ).toEqual(resultado);
-      expect(service.findAll).toHaveBeenCalledWith('APROBADA', 'uuid-proyecto', 'uuid-usuario', 'ADMIN');
+      expect(service.findAll).toHaveBeenCalledWith('APROBADA', 'uuid-proyecto');
     });
   });
 

@@ -4,7 +4,7 @@ import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { UserRole, User } from '../users/user.entity';
+import { UserRole } from '../users/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -17,13 +17,16 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
     const user = await this.usersService.create({
-      username: registerDto.username,
+      nombre: registerDto.nombre,
       email: registerDto.email,
       password: hashedPassword,
       rol: UserRole.SOLICITANTE,
     });
 
-    return this.generateLoginResponse(user);
+    return {
+      message: 'Usuario registrado exitosamente',
+      user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol },
+    };
   }
 
   async login(loginDto: LoginDto) {
@@ -43,43 +46,28 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
-    if (user.estado === false) {
+    if (user.estado !== undefined && !user.estado) {
       throw new UnauthorizedException('El usuario está desactivado');
     }
 
-    return this.generateLoginResponse(user);
+    return {
+      access_token: this.generateToken(user),
+      user: { 
+        id: user.id, 
+        nombre: user.nombre, 
+        rol: user.rol 
+      }
+    };
   }
 
-  async loginWithUser(user: User) {
-    if (user.estado === false) {
-      throw new UnauthorizedException('El usuario está desactivado');
-    }
-    return this.generateLoginResponse(user);
-  }
-
-  private generateLoginResponse(user: User) {
+  generateToken(user: { id: string; email?: string | null; rol: UserRole | string; bodegaAsignadaId?: number | null }): string {
     const payload = {
       id: user.id,
       sub: user.id,
       email: user.email,
-      nombre: user.nombre,
       rol: user.rol,
-      fotoPerfil: user.fotoPerfil || user.avatarUrl || null,
-      googleId: user.googleId || null,
-      avatarUrl: user.avatarUrl || null,
+      bodegaAsignadaId: user.bodegaAsignadaId ?? null,
     };
-
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
-        id: user.id,
-        username: user.nombre,
-        rol: user.rol,
-        email: user.email,
-        fotoPerfil: user.fotoPerfil || user.avatarUrl || null,
-        googleId: user.googleId || null,
-        avatarUrl: user.avatarUrl || null,
-      },
-    };
+    return this.jwtService.sign(payload);
   }
 }

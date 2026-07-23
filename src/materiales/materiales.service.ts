@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { DataSource, Repository, Brackets } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateMaterialDto } from './dto/create-material.dto';
 import { UpdateMaterialDto } from './dto/update-material.dto';
@@ -7,9 +7,12 @@ import { Material } from './material.entity';
 import { Categoria } from '../categorias/categoria.entity';
 import { UnidadMedida } from '../unidades-medida/unidad-medida.entity';
 import { AuditoriaService } from '../auditoria/auditoria.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class MaterialesService {
+  private readonly logger = new Logger(MaterialesService.name);
+
   constructor(
     @InjectRepository(Material)
     private readonly materialRepository: Repository<Material>,
@@ -19,7 +22,7 @@ export class MaterialesService {
     private readonly auditoriaService: AuditoriaService,
   ) { }
 
-  async create(createMaterialDto: CreateMaterialDto, usuarioId: number): Promise<Material> {
+  async create(createMaterialDto: CreateMaterialDto, usuarioId: string): Promise<Material> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -75,7 +78,7 @@ export class MaterialesService {
 
       try {
         await this.auditoriaService.registrarAccion(
-          usuarioId.toString(),
+          usuarioId,
           'CREAR_MATERIAL',
           'Materiales',
           {
@@ -86,7 +89,7 @@ export class MaterialesService {
           }
         );
       } catch (auditError) {
-        console.error('Error al registrar en el módulo de auditoría (MongoDB):', auditError);
+        this.logger.error('Error al registrar en el módulo de auditoría (MongoDB):', auditError);
       }
 
       return materialGuardado;
@@ -98,13 +101,64 @@ export class MaterialesService {
     }
   }
 
-  async findAll(): Promise<Material[]> {
-    return await this.materialRepository.find({
-      relations: {
-        categoria: true,
-        unidadMedida: true,
+  async findAll(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10, search } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const query = this.materialRepository.createQueryBuilder('material')
+      .leftJoinAndSelect('material.categoria', 'categoria')
+      .leftJoinAndSelect('material.unidadMedida', 'unidadMedida');
+
+    if (search) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('LOWER(material.nombre) LIKE LOWER(:search)', { search: `%${search}%` })
+            .orWhere('LOWER(material.sku) LIKE LOWER(:search)', { search: `%${search}%` });
+        }),
+      );
+    }
+
+    query.orderBy('material.id', 'DESC');
+
+    const [data, total] = await query
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    const materialIds = data.map(m => m.id);
+
+    let stockMap: Record<number, { disponible: number; reservada: number }> = {};
+    if (materialIds.length > 0) {
+      const stockRows = await this.dataSource
+        .createQueryBuilder()
+        .select('material_id', 'materialId')
+        .addSelect('COALESCE(SUM(cantidad_disponible), 0)', 'disponible')
+        .addSelect('COALESCE(SUM(cantidad_reservada), 0)', 'reservada')
+        .from('stock_bodega', 'sb')
+        .where('sb.material_id IN (:...ids)', { ids: materialIds })
+        .groupBy('sb.material_id')
+        .getRawMany();
+
+      stockMap = Object.fromEntries(
+        stockRows.map((r: any) => [r.materialId, { disponible: Number(r.disponible), reservada: Number(r.reservada) }])
+      );
+    }
+
+    const enrichedData = data.map(m => ({
+      ...m,
+      stockDisponible: stockMap[m.id]?.disponible ?? 0,
+      stockReservado: stockMap[m.id]?.reservada ?? 0,
+    }));
+
+    return {
+      data: enrichedData,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-    });
+    };
   }
 
   async findOne(id: number): Promise<Material> {
@@ -123,7 +177,7 @@ export class MaterialesService {
     return material;
   }
 
-  async update(id: number, updateMaterialDto: UpdateMaterialDto, usuarioId: number): Promise<Material> {
+  async update(id: number, updateMaterialDto: UpdateMaterialDto, usuarioId: string): Promise<Material> {
     const material = await this.findOne(id);
     
     if ('sku' in (updateMaterialDto as any)) {
@@ -141,14 +195,28 @@ export class MaterialesService {
         { materialId: id, sku: guardado.sku, cambios: updateMaterialDto }
       );
     } catch (auditError) {
-      console.error('Error al auditar actualización:', auditError);
+      this.logger.error('Error al auditar actualización:', auditError);
     }
 
     return guardado;
   }
 
-  async remove(id: number, usuarioId: number): Promise<{ message: string }> {
+  async remove(id: number, usuarioId: string): Promise<{ message: string }> {
     const material = await this.findOne(id);
+
+    const stockCount = await this.dataSource
+      .createQueryBuilder()
+      .select('COUNT(*)', 'count')
+      .from('stock_bodega', 'sb')
+      .where('sb.material_id = :id', { id })
+      .getRawOne();
+
+    if (stockCount && Number(stockCount.count) > 0) {
+      throw new BadRequestException(
+        `No se puede eliminar el material "${material.nombre}" porque tiene ${stockCount.count} registro(s) de inventario asociado(s). Retire el stock primero.`,
+      );
+    }
+
     const skuEliminado = material.sku;
 
     await this.materialRepository.remove(material);
@@ -161,7 +229,7 @@ export class MaterialesService {
         { materialId: id, sku: skuEliminado, nombre: material.nombre }
       );
     } catch (auditError) {
-      console.error('Error al auditar eliminación:', auditError);
+      this.logger.error('Error al auditar eliminación:', auditError);
     }
 
     return { message: `El material con SKU ${skuEliminado} ha sido eliminado.` };

@@ -14,6 +14,9 @@ export class CreateRequirementDto {
   @IsUUID()
   proyectoId: string;
 
+  @IsNumber()
+  bodegaId: number;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RequirementDetailDto)

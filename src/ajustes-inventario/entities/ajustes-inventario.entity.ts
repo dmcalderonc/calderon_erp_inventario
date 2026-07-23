@@ -15,10 +15,10 @@ export class AjusteInventario {
   @JoinColumn({ name: 'bodega_id' })
   bodega: Bodega;
 
-  @Column({ name: 'usuario_autorizador_id', type: 'uuid', nullable: true })
+  @Column({ name: 'usuario_autorizador_id', type: 'uuid' })
   usuarioAutorizadorId: string;
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => User)
   @JoinColumn({ name: 'usuario_autorizador_id' })
   usuarioAutorizador: User;
 

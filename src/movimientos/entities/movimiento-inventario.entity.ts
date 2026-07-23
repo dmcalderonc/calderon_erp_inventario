@@ -28,10 +28,10 @@ export class MovimientoInventario {
   @Column({ type: 'text', nullable: true })
   observaciones?: string;
 
-  @Column({ name: 'usuario_id', type: 'uuid', nullable: true })
+  @Column({ name: 'usuario_id', type: 'uuid' })
   usuarioId?: string;
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @ManyToOne(() => User)
   @JoinColumn({ name: 'usuario_id' })
   usuario?: User;
 

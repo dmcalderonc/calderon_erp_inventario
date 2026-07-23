@@ -44,8 +44,9 @@ export class ProveedoresService {
   }
 
   
-  async remove(id: number): Promise<void> {
+  async remove(id: number): Promise<{ message: string }> {
     const proveedor = await this.findOne(id);
     await this.proveedorRepository.remove(proveedor);
+    return { message: `El proveedor con ID #${id} ha sido eliminado.` };
   }
 }
