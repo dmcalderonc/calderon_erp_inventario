@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { InventarioService } from './inventario.service';
 import { CreateInventarioDto } from './dto/create-inventario.dto';
@@ -15,7 +14,6 @@ import { UpdateInventarioDto } from './dto/update-inventario.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../users/user.entity';
 
 @Controller('inventario')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -32,12 +30,6 @@ export class InventarioController {
   @Roles('ADMIN', 'BODEGUERO')
   findAll() {
     return this.inventarioService.findAll();
-  }
-
-  @Get('bodega/:bodegaId')
-  @Roles(UserRole.ADMIN, UserRole.BODEGUERO)
-  async getByBodega(@Param('bodegaId', ParseIntPipe) bodegaId: number) {
-    return this.inventarioService.getStockByBodega(bodegaId);
   }
 
   @Get(':id')

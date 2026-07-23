@@ -22,19 +22,4 @@ export class DetalleOrdenCompra {
 
   @ManyToOne(() => OrdenCompra, (orden) => orden.detalles)
   ordenCompra: OrdenCompra;
-
-  @Column({ name: 'requerimiento_detalle_id', type: 'int', nullable: true })
-  requerimientoDetalleId: number | null;
-
-  @Column({ type: 'int', nullable: true })
-  tiempoEntregaDias: number | null;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  marca: string | null;
-
-  @Column({ type: 'text', nullable: true })
-  observaciones: string | null;
-
-  @Column({ name: 'archivo_adjunto_url', type: 'varchar', nullable: true })
-  archivoAdjuntoUrl: string | null;
 }

@@ -27,13 +27,13 @@ export class CategoriasController {
   }
 
   @Get()
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   findAll() {
     return this.categoriasService.findAll();
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   findOne(@Param('id') id: string) {
     return this.categoriasService.findOne(+id);
   }

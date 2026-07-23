@@ -11,6 +11,6 @@ export class ProyectoUsuario {
   @ManyToOne(() => Proyecto, (proyecto) => proyecto.usuarios)
   proyecto: Proyecto;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   usuario: User;
 }

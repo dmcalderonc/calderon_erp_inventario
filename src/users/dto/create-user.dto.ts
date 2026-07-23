@@ -1,10 +1,10 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsString, IsOptional, IsNumber, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { UserRole } from '../user.entity';
 
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
-  nombre: string;
+  username: string;
 
   @IsEmail()
   @IsNotEmpty()
@@ -18,6 +18,13 @@ export class CreateUserDto {
   rol: UserRole;
 
   @IsOptional()
-  @IsNumber()
-  bodegaAsignadaId?: number;
+  is_active?: boolean;
+
+  @IsInt()
+  @IsOptional()
+  bodega_id?: number;
+
+  @IsOptional()
+  @IsString()
+  fotoPerfil?: string;
 }

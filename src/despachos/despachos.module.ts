@@ -6,13 +6,13 @@ import { DespachosController } from './despachos.controller';
 import { MovimientosModule } from '../movimientos/movimientos.module';
 import { Requirement } from '../requirements/entities/requirement.entity';
 import { Proyecto } from '../proyectos/proyecto.entity';
-import { AuditoriaLogSchema } from '../auditoria/auditoria.schema';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Requirement, Proyecto]),
-    MongooseModule.forFeature([{ name: 'AuditLog', schema: AuditoriaLogSchema }]),
-    MovimientosModule,
+    // Asegúrate de que el Schema de AuditLog coincida con cómo lo registraste en AppModule
+    MongooseModule.forFeature([{ name: 'AuditLog', schema: {} as any }]),
+    MovimientosModule // Inyectamos el módulo del Ticket 7
   ],
   controllers: [DespachosController],
   providers: [DespachosService],

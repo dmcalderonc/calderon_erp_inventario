@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  Logger,
 } from '@nestjs/common';
 import { Inventario } from '../inventario/inventario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,9 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
   Requirement,
-  RequirementStatus,
 } from '../requirements/entities/requirement.entity';
-import { ItemStatus } from '../requirements/entities/requirement-detail.entity';
 import { Proyecto } from '../proyectos/proyecto.entity';
 import {
   MovimientoInventario,
@@ -25,8 +22,6 @@ import { CreateEntregaDirectaDto } from './dto/create-entrega-directa_mp.dto';
 
 @Injectable()
 export class DespachosService {
-  private readonly logger = new Logger(DespachosService.name);
-
   constructor(
     private readonly movimientosService: MovimientosService,
     @InjectRepository(Requirement)
@@ -37,7 +32,7 @@ export class DespachosService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async registrarEntregaDirecta(dto: CreateEntregaDirectaDto, usuarioFirmaId: string) {
+  async registrarEntregaDirecta(dto: any, usuarioFirmaId: string) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -76,7 +71,7 @@ export class DespachosService {
         const cantidad = Number(detalle.cantidad);
 
         const stockActual = await queryRunner.manager.findOne(Inventario, {
-          where: { materialId, bodegaId: Number(bodegaId) },
+          where: { materialId, bodega_id: Number(bodegaId) },
         });
 
         if (stockActual) {
@@ -85,7 +80,7 @@ export class DespachosService {
         } else {
           const nuevoStock = queryRunner.manager.create(Inventario, {
             materialId,
-            bodegaId: Number(bodegaId),
+            bodega_id: Number(bodegaId),
             cantidad_disponible: cantidad,
             cantidad_reservada: 0,
           });
@@ -101,12 +96,11 @@ export class DespachosService {
 
         if (req) {
           for (const det of (req.detalles || [])) {
-            if (det.estadoItem !== ItemStatus.APROBADO_BODEGA) continue;
-            det.estadoItem = ItemStatus.DESPACHADO;
+            det.estadoItem = 'DESPACHADO' as any;
             det.cantidadDespachada = Number(det.cantidadSolicitada);
             await queryRunner.manager.save(det);
           }
-          req.estado = RequirementStatus.DESPACHADO;
+          req.estado = 'DESPACHADO' as any;
           await queryRunner.manager.save(req);
         }
       }
@@ -122,7 +116,7 @@ export class DespachosService {
           detalles: { proyectoId: dto.proyectoId, materiales: dto.detalles.length },
         });
       } catch (e) {
-        this.logger.error('Error al registrar auditoría en MongoDB:', e);
+        console.error('Error al registrar auditoría en MongoDB:', e);
       }
 
       return { message: 'Entrega directa registrada y stock actualizado.', movimientoId: movement.id };

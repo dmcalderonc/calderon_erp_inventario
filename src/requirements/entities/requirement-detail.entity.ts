@@ -4,10 +4,6 @@ import { Material } from '../../materiales/material.entity';
 
 export enum ItemStatus {
   PENDIENTE = 'PENDIENTE',
-  APROBADO_BODEGA = 'APROBADO_BODEGA',
-  RECHAZADO = 'RECHAZADO',
-  EN_COMPRAS = 'EN_COMPRAS',
-  EN_TRASLADO = 'EN_TRASLADO',
   DESPACHADO = 'DESPACHADO',
 }
 
@@ -39,7 +35,4 @@ export class RequirementDetail {
 
   @Column({ type: 'enum', enum: ItemStatus, default: ItemStatus.PENDIENTE })
   estadoItem: ItemStatus;
-
-  @Column({ type: 'text', nullable: true })
-  observaciones: string | null;
 }

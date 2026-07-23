@@ -1,9 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
-import { User } from './user.entity';
-import { Bodega } from '../bodegas/bodegas.entity';
+import { User, UserRole } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -12,8 +10,6 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(Bodega)
-    private readonly bodegaRepository: Repository<Bodega>,
   ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -25,29 +21,17 @@ export class UsersService {
       throw new BadRequestException('El correo electrónico ya se encuentra registrado.');
     }
 
-    if (createUserDto.rol === 'BODEGUERO' && !createUserDto.bodegaAsignadaId) {
-      throw new BadRequestException('Los bodegueros deben tener una bodega asignada.');
-    }
-
-    if (createUserDto.bodegaAsignadaId) {
-      const bodegaExists = await this.bodegaRepository.findOne({
-        where: { id: createUserDto.bodegaAsignadaId },
-      });
-      if (!bodegaExists) {
-        throw new BadRequestException(`La bodega con ID ${createUserDto.bodegaAsignadaId} no existe.`);
-      }
-    }
-
     const newUser = this.userRepository.create({
-      nombre: createUserDto.nombre,
+      nombre: createUserDto.username,
       email: createUserDto.email,
-      password: await bcrypt.hash(createUserDto.password, 10),
+      password: createUserDto.password,
       rol: createUserDto.rol,
-      bodegaAsignadaId: createUserDto.rol === 'BODEGUERO' ? createUserDto.bodegaAsignadaId : null,
+      estado: createUserDto.is_active,
     });
 
     return await this.userRepository.save(newUser);
   }
+
 
   async findByEmailForLogin(email: string): Promise<User | null> {
     return await this.userRepository.findOne({
@@ -59,21 +43,57 @@ export class UsersService {
         password: true,
         rol: true,
         estado: true,
-        bodegaAsignadaId: true,
+        fotoPerfil: true,
+        googleId: true,
+        avatarUrl: true,
       },
     });
   }
 
-  async findAll(): Promise<User[]> {
-    return await this.userRepository.find({
-      relations: { bodegaAsignada: true },
+  async findByEmail(email: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { email } });
+  }
+
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { googleId } });
+  }
+
+  async createFromGoogle(data: {
+    email: string;
+    nombre: string;
+    googleId: string;
+    avatarUrl?: string;
+  }): Promise<User> {
+    const newUser = this.userRepository.create({
+      email: data.email,
+      nombre: data.nombre,
+      googleId: data.googleId,
+      avatarUrl: data.avatarUrl,
+      rol: UserRole.SOLICITANTE,
     });
+    return await this.userRepository.save(newUser);
+  }
+
+  async linkGoogleId(userId: string, googleId: string, avatarUrl?: string): Promise<User> {
+    const user = await this.findOne(userId);
+    user.googleId = googleId;
+    if (avatarUrl) user.avatarUrl = avatarUrl;
+    return await this.userRepository.save(user);
+  }
+
+  async unlinkGoogleId(userId: string): Promise<User> {
+    const user = await this.findOne(userId);
+    user.googleId = undefined;
+    return await this.userRepository.save(user);
+  }
+
+  async findAll(): Promise<User[]> {
+    return await this.userRepository.find();
   }
 
   async findOne(id: string): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
-      relations: { bodegaAsignada: true },
     });
 
     if (!user) {
@@ -82,7 +102,7 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<{ user: User; rolChanged: boolean }> {
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
 
     if (updateUserDto.email && updateUserDto.email !== user.email) {
@@ -94,37 +114,29 @@ export class UsersService {
       }
     }
 
-    const rolChanged = !!updateUserDto.rol && updateUserDto.rol !== user.rol;
-
-    const dataToUpdate: Record<string, any> = {};
-
-    if (updateUserDto.nombre) dataToUpdate.nombre = updateUserDto.nombre;
-    if (updateUserDto.email) dataToUpdate.email = updateUserDto.email;
-    if (updateUserDto.password) dataToUpdate.password = await bcrypt.hash(updateUserDto.password, 10);
-    if (updateUserDto.rol) dataToUpdate.rol = updateUserDto.rol;
-    if (typeof updateUserDto.estado === 'boolean') dataToUpdate.estado = updateUserDto.estado;
-
-    if (updateUserDto.rol === 'BODEGUERO' && updateUserDto.bodegaAsignadaId) {
-      const bodegaExists = await this.bodegaRepository.findOne({
-        where: { id: updateUserDto.bodegaAsignadaId },
-      });
-      if (!bodegaExists) {
-        throw new BadRequestException(`La bodega con ID ${updateUserDto.bodegaAsignadaId} no existe.`);
-      }
-      dataToUpdate.bodegaAsignadaId = updateUserDto.bodegaAsignadaId;
-    } else if (updateUserDto.rol && updateUserDto.rol !== 'BODEGUERO') {
-      dataToUpdate.bodegaAsignadaId = null;
-    }
+    const dataToUpdate = {
+      ...(updateUserDto.username && { nombre: updateUserDto.username }),
+      ...(updateUserDto.email && { email: updateUserDto.email }),
+      ...(updateUserDto.password && { password: updateUserDto.password }),
+      ...(updateUserDto.rol && { rol: updateUserDto.rol }),
+      ...(updateUserDto.is_active !== undefined && { estado: updateUserDto.is_active }),
+      ...(updateUserDto.fotoPerfil !== undefined && { fotoPerfil: updateUserDto.fotoPerfil || undefined }),
+    };
 
     const updatedUser = this.userRepository.merge(user, dataToUpdate);
-    const saved = await this.userRepository.save(updatedUser);
-    return { user: saved, rolChanged };
+    return await this.userRepository.save(updatedUser);
   }
 
   async remove(id: string): Promise<any> {
     const user = await this.findOne(id);
     const userDeleted = { id: user.id, nombre: user.nombre };
     await this.userRepository.remove(user);
-    return userDeleted;
+    return userDeleted; 
+  }
+
+  async updateProfile(id: string, fotoPerfil?: string): Promise<User> {
+    const user = await this.findOne(id);
+    user.fotoPerfil = fotoPerfil || undefined;
+    return await this.userRepository.save(user);
   }
 }

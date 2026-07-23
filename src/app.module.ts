@@ -11,7 +11,7 @@ import { CategoriasModule } from './categorias/categorias.module';
 import { MaterialesModule } from './materiales/materiales.module';
 import { ProyectosModule } from './proyectos/proyectos.module';
 import { BodegasModule } from './bodegas/bodegas.module';
-import { EventEmitterModule } from '@nestjs/event-emitter';
+
 
 import { MovimientosModule } from './movimientos/movimientos.module';
 import { RequirementsModule } from './requirements/requirements.module';
@@ -24,11 +24,10 @@ import { CotizacionesModule } from './cotizaciones/cotizaciones.module';
 import { DespachosModule } from './despachos/despachos.module';
 import { UnidadesMedidaModule } from './unidades-medida/unidades-medida.module';
 import { PublicModule } from './public/public.module';
-import { TraspasosModule } from './traspasos/traspasos.module';
 
 @Module({
   imports: [
-    EventEmitterModule.forRoot(), 
+
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -44,7 +43,7 @@ import { TraspasosModule } from './traspasos/traspasos.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true, 
-        synchronize: true,
+        synchronize: true, 
       }),
     }),
 
@@ -66,6 +65,7 @@ import { TraspasosModule } from './traspasos/traspasos.module';
     MaterialesModule,
     ProyectosModule,
     BodegasModule,
+    ProveedoresModule,
     InventarioModule,
     MovimientosModule,
     RequirementsModule,
@@ -78,7 +78,6 @@ import { TraspasosModule } from './traspasos/traspasos.module';
     DespachosModule,
     UnidadesMedidaModule,
     PublicModule,
-    TraspasosModule,
   ],
 })
 export class AppModule {}

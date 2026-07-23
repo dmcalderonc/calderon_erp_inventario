@@ -1,6 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Exclude } from 'class-transformer';
-import { Bodega } from '../bodegas/bodegas.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -20,8 +18,7 @@ export class User {
   @Column({ type: 'varchar', unique: true })
   email?: string;
 
-  @Column({ type: 'varchar' })
-  @Exclude()
+  @Column({ nullable: true })
   password?: string;
 
 
@@ -31,16 +28,18 @@ export class User {
   @Column({ type: 'boolean', default: true })
   estado?: boolean;
 
+  @Column({ type: 'text', nullable: true })
+  fotoPerfil?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  googleId?: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  avatarUrl?: string | null;
+
   @CreateDateColumn()
   fechaCreacion?: Date;
 
   @UpdateDateColumn()
   fechaActualizacion?: Date;
-
-  @Column({ name: 'bodega_asignada_id', type: 'int', nullable: true })
-  bodegaAsignadaId: number | null;
-
-  @ManyToOne(() => Bodega, { nullable: true })
-  @JoinColumn({ name: 'bodega_asignada_id' })
-  bodegaAsignada: Bodega | null;
 }

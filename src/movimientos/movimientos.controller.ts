@@ -16,7 +16,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { PdfService } from '../pdf/pdf.service';
-import { JwtPayload } from '../auth/jwt.strategy';
 
 @Controller('movimientos')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -28,8 +27,9 @@ export class MovimientosController {
 
   @Post()
   @Roles('ADMIN', 'BODEGUERO')
-  async registrar(@Body() dto: CreateMovimientoDto, @Req() req: { user: JwtPayload }) {
-    return await this.movimientosService.registrarMovimiento(dto, req.user.id);
+  async registrar(@Body() dto: CreateMovimientoDto, @Req() req: any) {
+    const usuarioId = req.user.id;
+    return await this.movimientosService.registrarMovimiento(dto, usuarioId);
   }
 
   @Get()

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { CotizacionesService } from './cotizaciones.service';
 import { CreateCotizacioneDto } from './dto/create-cotizacione.dto';
@@ -22,14 +23,14 @@ export class CotizacionesController {
 
   @Post()
   @Roles('ADMIN', 'COMPRADOR')
-  create(@Body() createCotizacioneDto: CreateCotizacioneDto) {
-    return this.cotizacionesService.create(createCotizacioneDto);
+  create(@Body() createCotizacioneDto: CreateCotizacioneDto, @Req() req: any) {
+    return this.cotizacionesService.create(createCotizacioneDto, req.user.id);
   }
 
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  findAll() {
-    return this.cotizacionesService.findAll();
+  findAll(@Req() req: any) {
+    return this.cotizacionesService.findAll(req.user.id, req.user.rol);
   }
 
   @Get(':id')
@@ -45,18 +46,6 @@ export class CotizacionesController {
     @Body() updateCotizacioneDto: UpdateCotizacioneDto,
   ) {
     return this.cotizacionesService.update(+id, updateCotizacioneDto);
-  }
-
-  @Patch(':id/seleccionar')
-  @Roles('ADMIN', 'COMPRADOR')
-  seleccionar(@Param('id') id: string) {
-    return this.cotizacionesService.seleccionar(+id);
-  }
-
-  @Patch(':id/descartar')
-  @Roles('ADMIN', 'COMPRADOR')
-  descartar(@Param('id') id: string) {
-    return this.cotizacionesService.descartar(+id);
   }
 
   @Delete(':id')

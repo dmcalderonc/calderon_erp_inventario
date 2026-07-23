@@ -4,7 +4,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CreateEntregaDirectaDto } from './dto/create-entrega-directa_mp.dto';
-import { JwtPayload } from '../auth/jwt.strategy';
 
 @Controller('despachos')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,10 +12,11 @@ export class DespachosController {
 
   @Post('entrega-directa')
   @Roles('ADMIN', 'BODEGUERO')
-  async entregaDirecta(@Body() dto: CreateEntregaDirectaDto, @Req() req: { user: JwtPayload }) {
+  async entregaDirecta(@Body() dto: CreateEntregaDirectaDto, @Req() req: any) {
+    const usuarioFirmaId = req.user.id;
     return await this.despachosService.registrarEntregaDirecta(
       dto,
-      req.user.id,
+      usuarioFirmaId,
     );
   }
 }

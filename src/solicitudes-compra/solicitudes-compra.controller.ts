@@ -16,7 +16,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { ProyectoAccessGuard } from '../auth/guards/ProyectoAccessGuard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { EstadoSolicitud } from './entities/solicitud-compra.entity';
-import { JwtPayload } from '../auth/jwt.strategy';
 
 @Controller('solicitudes-compra')
 @UseGuards(JwtAuthGuard, RolesGuard, ProyectoAccessGuard)
@@ -32,44 +31,23 @@ export class SolicitudesCompraController {
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   findAll(
+    @Req() req: any,
     @Query('estado') estado?: EstadoSolicitud,
     @Query('proyectoId') proyectoId?: string,
   ) {
-    return this.solicitudesService.findAll(estado, proyectoId);
-  }
-
-  @Get(':id')
-  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  findOne(@Param('id') id: string) {
-    return this.solicitudesService.findOne(+id);
+    return this.solicitudesService.findAll(estado, proyectoId, req.user.id, req.user.rol);
   }
 
   @Patch(':id')
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  update(@Param('id') id: string, @Body() updateDto: any, @Req() req: { user: JwtPayload }) {
+  update(@Param('id') id: string, @Body() updateDto: any, @Req() req: any) {
+    const usuarioActualId = req.user.id;
+    const rolUsuario = req.user.rol;
     return this.solicitudesService.update(
       +id,
       updateDto,
-      req.user.id,
-      req.user.rol,
+      usuarioActualId,
+      rolUsuario,
     );
-  }
-
-  @Patch(':id/cotizar')
-  @Roles('ADMIN', 'COMPRADOR')
-  cotizar(@Param('id') id: string) {
-    return this.solicitudesService.cotizar(+id);
-  }
-
-  @Patch(':id/aprobar')
-  @Roles('ADMIN', 'COMPRADOR')
-  aprobar(@Param('id') id: string) {
-    return this.solicitudesService.aprobar(+id);
-  }
-
-  @Patch(':id/procesar')
-  @Roles('ADMIN', 'COMPRADOR')
-  procesar(@Param('id') id: string) {
-    return this.solicitudesService.procesar(+id);
   }
 }

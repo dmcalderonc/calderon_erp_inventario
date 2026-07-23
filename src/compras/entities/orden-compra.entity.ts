@@ -22,7 +22,7 @@ export class OrdenCompra {
 
   @Column({
     type: 'enum',
-    enum: ['BORRADOR', 'EMITIDA', 'RECIBIDA', 'RECIBIDA_PARCIAL', 'CANCELADA','PENDIENTE'],
+    enum: ['BORRADOR', 'EMITIDA', 'RECIBIDA', 'CANCELADA','PENDIENTE'],
     default: 'BORRADOR'
   })
   estado?: string;
@@ -35,9 +35,6 @@ export class OrdenCompra {
 
   @Column('decimal', { precision: 12, scale: 2 })
   total?: number;
-
-  @Column({ name: 'bodega_destino_id', type: 'int', nullable: true })
-  bodegaDestinoId?: number | null;
 
   @OneToMany(() => DetalleOrdenCompra, (detalle) => detalle.ordenCompra, { cascade: true })
   detalles?: DetalleOrdenCompra[];

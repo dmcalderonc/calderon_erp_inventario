@@ -30,7 +30,6 @@ async function bootstrap() {
       'http://localhost:5173',
       'http://localhost:3000',
       'https://stockly.uaeftt-ute.site',
-      'https://calderon-erp.uaeftt-ute.site',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,

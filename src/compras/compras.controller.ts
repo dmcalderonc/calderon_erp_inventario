@@ -20,7 +20,6 @@ import { PdfService } from '../pdf/pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { JwtPayload } from '../auth/jwt.strategy';
 
 @Controller('compras')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -81,15 +80,9 @@ export class ComprasController {
 
   @Patch(':id/recibir')
   @Roles('ADMIN', 'BODEGUERO')
-  async recibir(@Param('id') id: string, @Req() req: { user: JwtPayload }) {
+  async recibir(@Param('id') id: string, @Req() req: any) {
     const usuarioId = req.user.id;
     return await this.comprasService.recibirOrden(+id, usuarioId);
-  }
-
-  @Patch(':id/aprobar')
-  @Roles('ADMIN')
-  async aprobar(@Param('id') id: string) {
-    return await this.comprasService.aprobar(+id);
   }
 
   @Delete(':id')
