@@ -98,9 +98,12 @@ export class RequirementsService {
       where: { materialId: detalle.materialId, bodegaId: bodegaSolicitadaId },
     });
 
-    const stockDisponible = stockSolicitada
-      ? (stockSolicitada.cantidad_disponible || 0) - (stockSolicitada.cantidad_reservada || 0)
-      : 0;
+    if (!stockSolicitada) {
+      return;
+    }
+
+    const stockDisponible =
+      (stockSolicitada.cantidad_disponible || 0) - (stockSolicitada.cantidad_reservada || 0);
 
     const cantidadReq = Number(detalle.cantidadSolicitada);
 

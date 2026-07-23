@@ -33,8 +33,8 @@ jobs:
 
           cd /home/calderond/proyecto_integrador_erp_inventario
 
-          # Limpiar archivos stale que SCP no elimina (ej: modulos removidos)
-          rm -rf src/traspasos dist
+          # Limpiar dist anterior
+          rm -rf dist
 
           # Liberar el puerto 3000
           fuser -k 3000/tcp || true

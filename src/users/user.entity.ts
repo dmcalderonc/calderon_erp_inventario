@@ -43,4 +43,10 @@ export class User {
   @ManyToOne(() => Bodega, { nullable: true })
   @JoinColumn({ name: 'bodega_asignada_id' })
   bodegaAsignada: Bodega | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  googleId?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  avatarUrl?: string;
 }

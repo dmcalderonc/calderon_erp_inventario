@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { User } from './user.entity';
+import { User, UserRole } from './user.entity';
 import { Bodega } from '../bodegas/bodegas.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -126,5 +126,39 @@ export class UsersService {
     const userDeleted = { id: user.id, nombre: user.nombre };
     await this.userRepository.remove(user);
     return userDeleted;
+  }
+
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { googleId } });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { email } });
+  }
+
+  async linkGoogleId(id: string, googleId: string, avatarUrl?: string): Promise<User> {
+    const user = await this.findOne(id);
+    user.googleId = googleId;
+    if (avatarUrl) user.avatarUrl = avatarUrl;
+    return await this.userRepository.save(user);
+  }
+
+  async unlinkGoogleId(id: string): Promise<void> {
+    const user = await this.findOne(id);
+    user.googleId = undefined;
+    user.avatarUrl = undefined;
+    await this.userRepository.save(user);
+  }
+
+  async createFromGoogle(data: { email: string; nombre: string; googleId: string; avatarUrl?: string }): Promise<User> {
+    const newUser = this.userRepository.create({
+      email: data.email,
+      nombre: data.nombre,
+      googleId: data.googleId,
+      avatarUrl: data.avatarUrl,
+      password: undefined,
+      rol: UserRole.SOLICITANTE,
+    });
+    return await this.userRepository.save(newUser);
   }
 }
