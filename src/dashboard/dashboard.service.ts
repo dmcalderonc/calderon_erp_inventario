@@ -41,12 +41,10 @@ export class DashboardService {
       const requerimientosPendientes = parseInt(requerimientosPendientesRaw[0]?.count || '0', 10);
 
       const stockQuery = await this.inventarioRepo.query(`
-        SELECT SUM(inv.cantidad_disponible * (m.precio_base + (m.precio_base * m.impuesto_porcentaje / 100))) 
-          AS "totalInventario"
+        SELECT SUM(inv.cantidad_disponible) AS "totalUnidades"
         FROM stock_bodega inv
-        INNER JOIN materiales m ON m.id = inv.material_id
       `);
-      const totalInventario = parseFloat(stockQuery[0]?.totalInventario || '0');
+      const totalUnidades = parseInt(stockQuery[0]?.totalUnidades || '0', 10);
 
       const totalUsuarios = await this.userRepo.count();
       const totalCategorias = await this.categoriaRepo.count();
@@ -55,7 +53,7 @@ export class DashboardService {
       return {
         proyectosActivos,
         requerimientosPendientes,
-        valorizacionTotalInventario: Number(totalInventario.toFixed(2)),
+        valorizacionTotalInventario: totalUnidades,
         totalUsuarios,
         totalCategorias,
         totalMateriales,
