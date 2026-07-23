@@ -1,36 +1,27 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Cotizacion } from './entities/cotizacion.entity';
+import { Cotizacion, EstadoCotizacion } from './entities/cotizacion.entity';
 import { CreateCotizacioneDto } from './dto/create-cotizacione.dto';
 import { UpdateCotizacioneDto } from './dto/update-cotizacione.dto';
+import { SolicitudCompra, EstadoSolicitud } from '../solicitudes-compra/entities/solicitud-compra.entity';
 
 @Injectable()
 export class CotizacionesService {
   constructor(
     @InjectRepository(Cotizacion)
     private readonly cotizacionRepository: Repository<Cotizacion>,
+    @InjectRepository(SolicitudCompra)
+    private readonly solicitudRepository: Repository<SolicitudCompra>,
   ) {}
 
-  async create(dto: CreateCotizacioneDto, usuarioId?: string): Promise<Cotizacion> {
-    const nueva = this.cotizacionRepository.create({
-      solicitudId: dto.solicitudId,
-      proveedorId: dto.proveedorId,
-      precioOfertadoTotal: dto.precioOfertadoTotal,
-      archivoRespaldoUrl: dto.archivoRespaldoUrl,
-      estado: dto.estado,
-      ...(usuarioId && { usuarioId }),
-    });
+  async create(dto: CreateCotizacioneDto): Promise<Cotizacion> {
+    const nueva = this.cotizacionRepository.create(dto);
     return await this.cotizacionRepository.save(nueva);
   }
 
-  async findAll(userId?: string, rol?: string): Promise<Cotizacion[]> {
-    const where: any = {};
-    if (rol === 'COMPRADOR' && userId) {
-      where.usuarioId = userId;
-    }
+  async findAll(): Promise<Cotizacion[]> {
     return await this.cotizacionRepository.find({
-      where,
       relations: { solicitud: true, proveedor: true },
       order: { id: 'DESC' },
     });
@@ -56,5 +47,36 @@ export class CotizacionesService {
   async remove(id: number): Promise<void> {
     const cotizacion = await this.findOne(id);
     await this.cotizacionRepository.remove(cotizacion);
+  }
+
+  async seleccionar(id: number): Promise<Cotizacion> {
+    const cotizacion = await this.findOne(id);
+
+    if (cotizacion.estado !== EstadoCotizacion.EN_EVALUACION) {
+      throw new BadRequestException(
+        `Solo se pueden seleccionar cotizaciones en estado EN_EVALUACION. Estado actual: ${cotizacion.estado}`,
+      );
+    }
+
+    cotizacion.estado = EstadoCotizacion.ELEGIDA;
+    await this.cotizacionRepository.save(cotizacion);
+
+    if (cotizacion.solicitudId) {
+      const solicitud = await this.solicitudRepository.findOne({
+        where: { id: cotizacion.solicitudId },
+      });
+      if (solicitud) {
+        solicitud.estado = EstadoSolicitud.APROBADA;
+        await this.solicitudRepository.save(solicitud);
+      }
+    }
+
+    return cotizacion;
+  }
+
+  async descartar(id: number): Promise<Cotizacion> {
+    const cotizacion = await this.findOne(id);
+    cotizacion.estado = EstadoCotizacion.DESCARTADA;
+    return await this.cotizacionRepository.save(cotizacion);
   }
 }

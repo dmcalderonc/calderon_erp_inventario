@@ -4,6 +4,7 @@ import { CreateAjusteInventarioDto } from './dto/create-ajustes-inventario.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtPayload } from '../auth/jwt.strategy';
 
 @Controller('ajustes-inventario')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,13 +23,11 @@ export class AjustesInventarioController {
   @Roles('ADMIN', 'BODEGUERO')
   async ejecutarAjuste(
     @Body() createAjusteDto: CreateAjusteInventarioDto,
-    @Req() req: any,
+    @Req() req: { user: JwtPayload },
   ) {
-    const usuarioId = req.user.id;
-
     return await this.ajustesInventarioService.ejecutarAjusteFisico(
       createAjusteDto,
-      usuarioId,
+      req.user.id,
     );
   }
 }

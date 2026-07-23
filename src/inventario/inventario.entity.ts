@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Material } from '../materiales/material.entity'; 
 import { Bodega } from '../bodegas/bodegas.entity';     
 
 @Entity('stock_bodega')
+@Index(['materialId', 'bodegaId'], { unique: true })
 export class Inventario {
   @PrimaryGeneratedColumn()
   id?: number;
@@ -10,8 +11,8 @@ export class Inventario {
   @Column({ name: 'material_id', type: 'integer' })
   materialId: number;
 
-  @Column()
-  bodega_id?: number;
+  @Column({ name: 'bodega_id', type: 'integer' })
+  bodegaId: number;
 
   @Column({ type: 'int', default: 0 })
   cantidad_disponible?: number;

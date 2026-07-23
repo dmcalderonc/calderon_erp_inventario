@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsArray, ValidateNested, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsArray, ValidateNested, IsString, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class DetalleEntregaDto {
@@ -23,6 +23,10 @@ export class CreateEntregaDirectaDto {
     @IsString()
     @IsNotEmpty()
     proyectoId: string;
+
+    @IsOptional()
+    @IsString()
+    observaciones?: string;
 
     @IsArray()
     @ValidateNested({ each: true })

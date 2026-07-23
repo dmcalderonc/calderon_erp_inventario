@@ -9,6 +9,7 @@ export enum EstadoSolicitud {
     COTIZANDO = 'COTIZANDO',
     APROBADA = 'APROBADA',
     RECHAZADA = 'RECHAZADA',
+    PROCESADO = 'PROCESADO',
 }
 
 export enum NivelPrioridad {
@@ -32,10 +33,10 @@ export class SolicitudCompra {
     @JoinColumn({ name: 'proyecto_id' })
     proyecto: Proyecto;
 
-    @Column({ name: 'usuario_solicitante_id', type: 'uuid', nullable: true })
+    @Column({ name: 'usuario_solicitante_id', type: 'uuid' })
     usuarioSolicitanteId: string;
 
-    @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+    @ManyToOne(() => User)
     @JoinColumn({ name: 'usuario_solicitante_id' })
     usuarioSolicitante: User;
 

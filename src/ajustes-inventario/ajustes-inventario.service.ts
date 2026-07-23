@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CreateAjusteInventarioDto } from './dto/create-ajustes-inventario.dto';
 import { AjusteInventario } from './entities/ajustes-inventario.entity';
@@ -8,6 +8,8 @@ import { AuditoriaService } from '../auditoria/auditoria.service';
 
 @Injectable()
 export class AjustesInventarioService {
+  private readonly logger = new Logger(AjustesInventarioService.name);
+
   constructor(
     private readonly dataSource: DataSource,
     private readonly auditoriaService: AuditoriaService,
@@ -39,7 +41,7 @@ export class AjustesInventarioService {
       for (const detalle of detalles) {
 
         let inventario = await queryRunner.manager.findOne(Inventario, {
-          where: { bodega_id: bodegaId, materialId: detalle.materialId },
+          where: { bodegaId: bodegaId, materialId: detalle.materialId },
         });
 
         if (!inventario) {
@@ -91,7 +93,7 @@ export class AjustesInventarioService {
 
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      console.error('Error en transacción de ajuste:', error);
+      this.logger.error('Error en transacción de ajuste:', error);
       throw new InternalServerErrorException(error.message);
     } finally {
       await queryRunner.release();

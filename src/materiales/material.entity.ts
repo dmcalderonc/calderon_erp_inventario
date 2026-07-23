@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { Categoria } from '../categorias/categoria.entity';
 import { UnidadMedida } from '../unidades-medida/unidad-medida.entity';
+import { Inventario } from '../inventario/inventario.entity';
 
 @Entity('materiales')
 export class Material {
@@ -26,4 +27,7 @@ export class Material {
   @ManyToOne(() => Categoria, (categoria) => categoria.materiales, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'categoria_id' })
   categoria: Categoria;
+
+  @OneToMany(() => Inventario, (inv) => inv.material)
+  stockBodega: Inventario[];
 }
