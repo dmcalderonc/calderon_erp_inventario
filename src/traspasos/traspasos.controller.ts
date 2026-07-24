@@ -32,13 +32,13 @@ export class TraspasosController {
   @Patch(':id/enviar')
   @Roles('ADMIN', 'BODEGUERO')
   confirmarEnvio(@Param('id') id: string, @Req() req: { user: JwtPayload }) {
-    return this.traspasosService.confirmarEnvio(+id, req.user.id, req.user.rol, req.user.bodegaAsignadaId);
+    return this.traspasosService.confirmarEnvio(+id, req.user.id, req.user.rol, req.user.bodegaIds);
   }
 
   @Patch(':id/recibir')
   @Roles('ADMIN', 'BODEGUERO')
   confirmarRecepcion(@Param('id') id: string, @Req() req: { user: JwtPayload }) {
-    return this.traspasosService.confirmarRecepcion(+id, req.user.id, req.user.rol, req.user.bodegaAsignadaId);
+    return this.traspasosService.confirmarRecepcion(+id, req.user.id, req.user.rol, req.user.bodegaIds);
   }
 
   @Patch(':id/cancelar')

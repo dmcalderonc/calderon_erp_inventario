@@ -7,6 +7,7 @@ import {
   Delete,
   Patch,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -40,8 +41,8 @@ export class ProveedoresController {
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   @ApiOperation({ summary: 'Obtener todos los proveedores' })
-  findAll() {
-    return this.proveedoresService.findAll();
+  findAll(@Query('includeSuspended') includeSuspended?: string) {
+    return this.proveedoresService.findAll(includeSuspended === 'true');
   }
 
   @Get(':id')

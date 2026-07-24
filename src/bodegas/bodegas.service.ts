@@ -18,8 +18,11 @@ export class BodegasService {
     return await repo.save(bodega);
   }
 
-  async findAll(): Promise<Bodega[]> {
-    return await this.bodegaRepository.find();
+  async findAll(includeSuspended = false): Promise<Bodega[]> {
+    if (includeSuspended) {
+      return await this.bodegaRepository.find();
+    }
+    return await this.bodegaRepository.find({ where: { isActive: true } });
   }
 
   async findOne(id: number): Promise<Bodega> {
@@ -29,10 +32,11 @@ export class BodegasService {
     }
     return bodega;
   }
+
   async update(id: number, updateDto: UpdateBodegasDto) {
     const bodega = await this.bodegaRepository.preload({
-      id,          
-      ...updateDto, 
+      id,
+      ...updateDto,
     });
 
     if (!bodega) {
@@ -46,7 +50,4 @@ export class BodegasService {
     const bodega = await this.findOne(id);
     return await this.bodegaRepository.remove(bodega);
   }
-
-
-
 }

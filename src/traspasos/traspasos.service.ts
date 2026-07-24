@@ -80,13 +80,13 @@ export class TraspasosService {
     return traspaso;
   }
 
-  async confirmarEnvio(id: number, usuarioId: string, rol: string, bodegaAsignadaId?: number | null) {
+  async confirmarEnvio(id: number, usuarioId: string, rol: string, bodegaIds?: number[]) {
     const traspaso = await this.findOne(id);
     if (traspaso.estado !== EstadoTraspaso.PENDIENTE) {
       throw new BadRequestException(`El traspaso debe estar en estado PENDIENTE para enviar. Estado actual: ${traspaso.estado}`);
     }
 
-    if (rol === 'BODEGUERO' && bodegaAsignadaId !== traspaso.bodegaOrigenId) {
+    if (rol === 'BODEGUERO' && bodegaIds && !bodegaIds.includes(traspaso.bodegaOrigenId)) {
       throw new ForbiddenException('No tiene permisos para gestionar esta bodega');
     }
 
@@ -125,13 +125,13 @@ export class TraspasosService {
     }
   }
 
-  async confirmarRecepcion(id: number, usuarioId: string, rol: string, bodegaAsignadaId?: number | null) {
+  async confirmarRecepcion(id: number, usuarioId: string, rol: string, bodegaIds?: number[]) {
     const traspaso = await this.findOne(id);
     if (traspaso.estado !== EstadoTraspaso.EN_TRANSITO) {
       throw new BadRequestException(`El traspaso debe estar EN_TRÁNSITO para recibir. Estado actual: ${traspaso.estado}`);
     }
 
-    if (rol === 'BODEGUERO' && bodegaAsignadaId !== traspaso.bodegaDestinoId) {
+    if (rol === 'BODEGUERO' && bodegaIds && !bodegaIds.includes(traspaso.bodegaDestinoId)) {
       throw new ForbiddenException('No tiene permisos para recibir en esta bodega');
     }
 

@@ -50,23 +50,29 @@ export class AuthService {
       throw new UnauthorizedException('El usuario está desactivado');
     }
 
+    if (user.isActive !== undefined && !user.isActive) {
+      throw new UnauthorizedException('El usuario está suspendido');
+    }
+
+    const fullUser = await this.usersService.findOne(user.id);
+
     return {
-      access_token: this.generateToken(user),
-      user: { 
-        id: user.id, 
-        nombre: user.nombre, 
-        rol: user.rol 
+      access_token: this.generateToken(fullUser),
+      user: {
+        id: fullUser.id,
+        nombre: fullUser.nombre,
+        rol: fullUser.rol,
       }
     };
   }
 
-  generateToken(user: { id: string; email?: string | null; rol: UserRole | string; bodegaAsignadaId?: number | null }): string {
+  generateToken(user: { id: string; email?: string | null; rol: UserRole | string; bodegasAsignadas?: { id: number }[] }): string {
     const payload = {
       id: user.id,
       sub: user.id,
       email: user.email,
       rol: user.rol,
-      bodegaAsignadaId: user.bodegaAsignadaId ?? null,
+      bodegaIds: (user.bodegasAsignadas || []).map(b => b.id),
     };
     return this.jwtService.sign(payload);
   }

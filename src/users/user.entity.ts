@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, JoinTable } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { Bodega } from '../bodegas/bodegas.entity';
 
@@ -9,7 +9,7 @@ export enum UserRole {
   COMPRADOR = 'COMPRADOR',
 }
 
-@Entity('users') 
+@Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -24,12 +24,14 @@ export class User {
   @Exclude()
   password?: string;
 
-
   @Column({ type: 'enum', enum: UserRole, default: UserRole.SOLICITANTE })
   rol: UserRole;
 
   @Column({ type: 'boolean', default: true })
   estado?: boolean;
+
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
 
   @CreateDateColumn()
   fechaCreacion?: Date;
@@ -37,12 +39,13 @@ export class User {
   @UpdateDateColumn()
   fechaActualizacion?: Date;
 
-  @Column({ name: 'bodega_asignada_id', type: 'int', nullable: true })
-  bodegaAsignadaId: number | null;
-
-  @ManyToOne(() => Bodega, { nullable: true })
-  @JoinColumn({ name: 'bodega_asignada_id' })
-  bodegaAsignada: Bodega | null;
+  @ManyToMany(() => Bodega, (bodega) => bodega.usuarios, { eager: false })
+  @JoinTable({
+    name: 'user_bodegas',
+    joinColumn: { name: 'userId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'bodegaId', referencedColumnName: 'id' },
+  })
+  bodegasAsignadas: Bodega[];
 
   @Column({ type: 'varchar', nullable: true })
   googleId?: string;

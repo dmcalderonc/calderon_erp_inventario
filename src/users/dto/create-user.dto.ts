@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsString, IsOptional, IsNumber, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsString, IsOptional, IsNumber, MinLength, IsArray, ArrayMinSize } from 'class-validator';
 import { UserRole } from '../user.entity';
 
 export class CreateUserDto {
@@ -18,6 +18,7 @@ export class CreateUserDto {
   rol: UserRole;
 
   @IsOptional()
-  @IsNumber()
-  bodegaAsignadaId?: number;
+  @IsArray()
+  @IsNumber({}, { each: true })
+  bodegaIds?: number[];
 }

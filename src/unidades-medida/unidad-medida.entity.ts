@@ -12,6 +12,9 @@ export class UnidadMedida {
   @Column({ length: 10, unique: true })
   simbolo: string;
 
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
+
   @OneToMany(() => Material, (material) => material.unidadMedida)
   materiales: Material[];
 }

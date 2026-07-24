@@ -6,7 +6,7 @@ export interface JwtPayload {
   id: string;
   email: string;
   rol: string;
-  bodegaAsignadaId?: number | null;
+  bodegaIds: number[];
 }
 
 @Injectable()
@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: payload.sub,
       email: payload.email,
       rol: payload.rol,
-      bodegaAsignadaId: payload.bodegaAsignadaId ?? null,
+      bodegaIds: payload.bodegaIds || [],
     };
   }
 }

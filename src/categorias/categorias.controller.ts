@@ -7,6 +7,7 @@ import {
   Delete,
   Put,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { CategoriasService } from './categorias.service';
 import { CreateCategoriaDto } from './dto/create-categoria.dto';
@@ -28,8 +29,8 @@ export class CategoriasController {
 
   @Get()
   @Roles('ADMIN', 'BODEGUERO')
-  findAll() {
-    return this.categoriasService.findAll();
+  findAll(@Query('includeSuspended') includeSuspended?: string) {
+    return this.categoriasService.findAll(includeSuspended === 'true');
   }
 
   @Get(':id')

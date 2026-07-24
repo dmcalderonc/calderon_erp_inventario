@@ -58,7 +58,7 @@ export class AuthController {
         }
       }
 
-      if (user.estado === false) {
+      if (user.estado === false || user.isActive === false) {
         return res.redirect(`${frontendUrl}/auth/google/callback?error=account_disabled`);
       }
 

@@ -82,6 +82,16 @@ export class UsersController {
     return { user };
   }
 
+  @Patch(':id/bodegas')
+  @Roles('ADMIN')
+  async updateBodegas(
+    @Param('id') id: string,
+    @Body('bodegaIds') bodegaIds: number[],
+  ) {
+    const user = await this.usersService.updateBodegas(id, bodegaIds);
+    return { user };
+  }
+
   @Delete(':id')
   @Roles('ADMIN')
   remove(@Param('id') id: string) {

@@ -8,6 +8,7 @@ import {
   Delete,
   ParseIntPipe,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { BodegasService } from './bodegas.service';
 import { CreateBodegaDto } from './dto/create-bodegas.dto';
@@ -29,8 +30,8 @@ export class BodegasController {
 
   @Get()
   @Roles('ADMIN', 'BODEGUERO')
-  findAll() {
-    return this.bodegasService.findAll();
+  findAll(@Query('includeSuspended') includeSuspended?: string) {
+    return this.bodegasService.findAll(includeSuspended === 'true');
   }
 
   @Get(':id')
