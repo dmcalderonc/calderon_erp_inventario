@@ -40,6 +40,12 @@ export class InventarioController {
     return this.inventarioService.getStockByBodega(bodegaId);
   }
 
+  @Get('material/:materialId/stock-por-bodega')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
+  async getStockByMaterial(@Param('materialId', ParseIntPipe) materialId: number) {
+    return this.inventarioService.getStockByBodegas(materialId);
+  }
+
   @Get(':id')
   @Roles('ADMIN', 'BODEGUERO')
   findOne(@Param('id') id: string) {
