@@ -23,7 +23,8 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
-    return await this.authService.register(registerDto);
+    const result = await this.authService.register(registerDto);
+    return { message: 'Usuario registrado exitosamente', data: result };
   }
 
   @Get('google')

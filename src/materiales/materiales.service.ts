@@ -101,7 +101,7 @@ export class MaterialesService {
     }
   }
 
-  async findAll(paginationDto: PaginationDto) {
+  async findAll(paginationDto: PaginationDto, categoriaId?: number, bodegaId?: number) {
     const { page = 1, limit = 10, search } = paginationDto;
     const skip = (page - 1) * limit;
 
@@ -116,6 +116,14 @@ export class MaterialesService {
             .orWhere('LOWER(material.sku) LIKE LOWER(:search)', { search: `%${search}%` });
         }),
       );
+    }
+
+    if (categoriaId) {
+      query.andWhere('categoria.id = :categoriaId', { categoriaId });
+    }
+
+    if (bodegaId) {
+      query.innerJoin('stock_bodega', 'sb', 'sb.material_id = material.id AND sb.bodega_id = :bodegaId', { bodegaId });
     }
 
     query.orderBy('material.id', 'DESC');

@@ -14,18 +14,18 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-
     const user = await this.usersService.create({
       nombre: registerDto.nombre,
       email: registerDto.email,
-      password: hashedPassword,
+      password: registerDto.password,
       rol: UserRole.SOLICITANTE,
     });
 
+    const fullUser = await this.usersService.findOne(user.id);
+
     return {
-      message: 'Usuario registrado exitosamente',
-      user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol },
+      access_token: this.generateToken(fullUser),
+      user: { id: fullUser.id, nombre: fullUser.nombre, email: fullUser.email, rol: fullUser.rol },
     };
   }
 
