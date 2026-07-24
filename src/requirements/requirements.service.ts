@@ -33,6 +33,7 @@ export class RequirementsService {
       proyectoId: createDto.proyectoId,
       usuarioSolicitanteId: userId,
       bodegaId: createDto.bodegaId,
+      justificativo: createDto.justificativo || null,
       estado: RequirementStatus.PENDIENTE,
       detalles: createDto.detalles.map((detalle) => ({
         materialId: detalle.materialId,
@@ -73,6 +74,20 @@ export class RequirementsService {
       if (accion === 'RECHAZADO') {
         detalle.estadoItem = ItemStatus.RECHAZADO;
         await queryRunner.manager.save(detalle);
+
+        const reqData = await queryRunner.manager.findOne(Requirement, {
+          where: { id },
+          relations: { bodega: true },
+        });
+
+        this.eventEmitter.emit('notificacion.crear', {
+          tipo: 'ITEM_RECHAZADO',
+          titulo: 'Ítem rechazado',
+          mensaje: `El ítem ${detalle.materialId} del REQ-${String(id).padStart(3, '0')} fue rechazado por el administrador. Bodega: ${reqData?.bodega?.nombre || 'N/A'}.`,
+          entidad: 'Requirement',
+          entidadId: String(id),
+          rolDestino: 'SOLICITANTE',
+        });
       } else {
         await this.aprobarItem(detalle, req.bodegaId, queryRunner.manager);
       }
@@ -177,6 +192,7 @@ export class RequirementsService {
 
     const requerimiento = await manager.findOne(Requirement, {
       where: { id: detalle.requerimientoId },
+      relations: { bodega: true },
     });
 
     this.eventEmitter.emit('requerimiento.en_compras', {
@@ -184,6 +200,16 @@ export class RequirementsService {
       materialId: detalle.materialId,
       cantidad: cantidadReq,
       proyectoId: requerimiento?.proyectoId,
+      bodegaNombre: requerimiento?.bodega?.nombre || 'N/A',
+    });
+
+    this.eventEmitter.emit('notificacion.crear', {
+      tipo: 'REQUERIMIENTO_EN_COMPRAS',
+      titulo: 'Material enviado a compras',
+      mensaje: `El material ID ${detalle.materialId} del REQ-${String(detalle.requerimientoId).padStart(3, '0')} no tiene stock disponible y fue enviado a compras. Bodega destino: ${requerimiento?.bodega?.nombre || 'N/A'}. Cantidad: ${cantidadReq}.`,
+      entidad: 'Requirement',
+      entidadId: String(detalle.requerimientoId),
+      rolDestino: 'COMPRADOR',
     });
   }
 

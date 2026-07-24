@@ -1,4 +1,4 @@
-import { IsUUID, IsArray, ValidateNested, IsNumber, IsInt, Min } from 'class-validator';
+import { IsUUID, IsArray, ValidateNested, IsNumber, IsInt, Min, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class RequirementDetailDto {
@@ -16,6 +16,10 @@ export class CreateRequirementDto {
 
   @IsNumber()
   bodegaId: number;
+
+  @IsOptional()
+  @IsString()
+  justificativo?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

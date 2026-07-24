@@ -20,7 +20,11 @@ export class DetalleOrdenCompra {
   @JoinColumn({ name: 'material_id' })
   material: Material;
 
+  @Column({ name: 'orden_compra_id', type: 'int', nullable: true })
+  ordenCompraId: number | null;
+
   @ManyToOne(() => OrdenCompra, (orden) => orden.detalles)
+  @JoinColumn({ name: 'orden_compra_id' })
   ordenCompra: OrdenCompra;
 
   @Column({ name: 'requerimiento_detalle_id', type: 'int', nullable: true })

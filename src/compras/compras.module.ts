@@ -8,11 +8,10 @@ import { DetalleOrdenCompra } from './entities/detalle-orden-compra.entity';
 import { AuditLogSchema } from './schemas/audit-log.schema';
 import { MovimientosModule } from '../movimientos/movimientos.module';
 import { Cotizacion } from '../cotizaciones/entities/cotizacion.entity';
-import { Proveedor } from '../proveedores/proveedore.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrdenCompra, DetalleOrdenCompra, Cotizacion, Proveedor]),
+    TypeOrmModule.forFeature([OrdenCompra, DetalleOrdenCompra, Cotizacion]),
     MongooseModule.forFeature([{ name: 'AuditLog', schema: AuditLogSchema }]),
     MovimientosModule,
   ],

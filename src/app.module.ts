@@ -25,6 +25,7 @@ import { DespachosModule } from './despachos/despachos.module';
 import { UnidadesMedidaModule } from './unidades-medida/unidades-medida.module';
 import { PublicModule } from './public/public.module';
 import { TraspasosModule } from './traspasos/traspasos.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { TraspasosModule } from './traspasos/traspasos.module';
     UnidadesMedidaModule,
     PublicModule,
     TraspasosModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}
