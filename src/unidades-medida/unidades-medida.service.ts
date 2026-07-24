@@ -46,8 +46,11 @@ export class UnidadesMedidaService implements OnModuleInit {
     }
   }
 
-  async findAll(): Promise<UnidadMedida[]> {
-    return await this.unidadMedidaRepository.find();
+  async findAll(includeSuspended = false): Promise<UnidadMedida[]> {
+    if (includeSuspended) {
+      return await this.unidadMedidaRepository.find();
+    }
+    return await this.unidadMedidaRepository.find({ where: { isActive: true } });
   }
 
   async findOne(id: number): Promise<UnidadMedida> {

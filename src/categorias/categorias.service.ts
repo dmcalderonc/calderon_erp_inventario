@@ -17,24 +17,27 @@ export class CategoriasService {
       const nuevaCategoria = this.categoriaRepository.create(createCategoriaDto);
       return await this.categoriaRepository.save(nuevaCategoria);
     } catch (error) {
-      if (error.code === '23505') { 
+      if (error.code === '23505') {
         throw new BadRequestException('El nombre o el prefijo ya se encuentra registrado.');
       }
       throw error;
     }
   }
 
-  async findAll(): Promise<Categoria[]> {
-    return await this.categoriaRepository.find();
+  async findAll(includeSuspended = false): Promise<Categoria[]> {
+    if (includeSuspended) {
+      return await this.categoriaRepository.find();
+    }
+    return await this.categoriaRepository.find({ where: { isActive: true } });
   }
 
   async findOne(id: number): Promise<Categoria> {
     const categoria = await this.categoriaRepository.findOneBy({ id });
-    
+
     if (!categoria) {
       throw new NotFoundException(`La categoría con ID ${id} no existe.`);
     }
-    
+
     return categoria;
   }
 
@@ -55,7 +58,7 @@ export class CategoriasService {
   async remove(id: number): Promise<{ message: string }> {
     const categoria = await this.findOne(id);
     await this.categoriaRepository.remove(categoria);
-    
+
     return { message: `La categoría "${categoria.nombre}" fue eliminada correctamente.` };
   }
 }

@@ -7,6 +7,7 @@ import {
   Delete,
   Put,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { UnidadesMedidaService } from './unidades-medida.service';
 import { CreateUnidadMedidaDto } from './dto/create-unidad-medida.dto';
@@ -28,8 +29,8 @@ export class UnidadesMedidaController {
 
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  findAll() {
-    return this.unidadesMedidaService.findAll();
+  findAll(@Query('includeSuspended') includeSuspended?: string) {
+    return this.unidadesMedidaService.findAll(includeSuspended === 'true');
   }
 
   @Get(':id')

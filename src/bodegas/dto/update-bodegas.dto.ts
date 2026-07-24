@@ -1,5 +1,25 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateBodegaDto } from './create-bodegas.dto';
+import { IsString, IsNotEmpty, IsBoolean, IsOptional, IsUUID } from 'class-validator';
 
-export class UpdateBodegasDto extends PartialType(CreateBodegaDto) {
+export class UpdateBodegasDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  nombre?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  ubicacion?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPrincipal?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  proyectoId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

@@ -20,8 +20,8 @@ export class Proveedor {
   @Column({ type: 'varchar' })
   direccion?: string;
 
-  @Column({ type: 'boolean', default: true })
-  estado?: boolean;
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive?: boolean;
 
   @CreateDateColumn()
   fechaCreacion?: Date;

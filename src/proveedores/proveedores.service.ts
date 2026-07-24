@@ -2,8 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateProveedorDto } from './dto/create-proveedor.dto';
-import { UpdateProveedoreDto } from './dto/update-proveedor.dto'; 
-import { Proveedor } from './proveedore.entity'; 
+import { UpdateProveedoreDto } from './dto/update-proveedor.dto';
+import { Proveedor } from './proveedore.entity';
 
 @Injectable()
 export class ProveedoresService {
@@ -17,11 +17,12 @@ export class ProveedoresService {
     return await this.proveedorRepository.save(nuevoProveedor);
   }
 
-
-  async findAll(): Promise<Proveedor[]> {
-    return await this.proveedorRepository.find();
+  async findAll(includeSuspended = false): Promise<Proveedor[]> {
+    if (includeSuspended) {
+      return await this.proveedorRepository.find();
+    }
+    return await this.proveedorRepository.find({ where: { isActive: true } });
   }
-
 
   async findOne(id: number): Promise<Proveedor> {
     const proveedor = await this.proveedorRepository.findOne({ where: { id } });
@@ -31,19 +32,14 @@ export class ProveedoresService {
     return proveedor;
   }
 
-
   async update(id: number, updateProveedorDto: UpdateProveedoreDto): Promise<Proveedor> {
-
     const proveedor = await this.findOne(id);
-    
 
     this.proveedorRepository.merge(proveedor, updateProveedorDto);
-    
-  
+
     return await this.proveedorRepository.save(proveedor);
   }
 
-  
   async remove(id: number): Promise<{ message: string }> {
     const proveedor = await this.findOne(id);
     await this.proveedorRepository.remove(proveedor);

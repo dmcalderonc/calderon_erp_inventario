@@ -1,4 +1,17 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateUnidadMedidaDto } from './create-unidad-medida.dto';
+import { IsString, IsNotEmpty, IsBoolean, IsOptional } from 'class-validator';
 
-export class UpdateUnidadMedidaDto extends PartialType(CreateUnidadMedidaDto) {}
+export class UpdateUnidadMedidaDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  nombre?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  simbolo?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}

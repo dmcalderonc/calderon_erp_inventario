@@ -10,7 +10,10 @@ export class Categoria {
   nombre: string;
 
   @Column({ length: 10, unique: true })
-  prefijo: string; 
+  prefijo: string;
+
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
 
   @OneToMany(() => Material, (material) => material.categoria)
   materiales: Material[];
