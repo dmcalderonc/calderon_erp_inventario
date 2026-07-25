@@ -12,19 +12,19 @@ export class TraspasosController {
   constructor(private readonly traspasosService: TraspasosService) {}
 
   @Post()
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN')
   create(@Body() dto: CreateTraspasoDto, @Req() req: { user: JwtPayload }) {
     return this.traspasosService.create(dto, req.user.id);
   }
 
   @Get()
-  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
+  @Roles('ADMIN', 'COMPRADOR', 'SOLICITANTE')
   findAll(@Req() req: { user: JwtPayload }, @Query() query: { estado?: string; bodegaOrigenId?: number; bodegaDestinoId?: number }) {
     return this.traspasosService.findAll(query, req.user.id, req.user.rol, req.user.bodegaIds);
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
+  @Roles('ADMIN', 'COMPRADOR', 'SOLICITANTE')
   findOne(@Param('id') id: string) {
     return this.traspasosService.findOne(+id);
   }

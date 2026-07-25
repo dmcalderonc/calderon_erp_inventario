@@ -12,7 +12,7 @@ export class DespachosController {
   constructor(private readonly despachosService: DespachosService) {}
 
   @Post('entrega-directa')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN')
   async entregaDirecta(@Body() dto: CreateEntregaDirectaDto, @Req() req: { user: JwtPayload }) {
     const bodegaIds = req.user.rol === 'BODEGUERO' ? req.user.bodegaIds : undefined;
     return await this.despachosService.registrarEntregaDirecta(

@@ -92,6 +92,15 @@ export class CotizacionesService {
       where: { requerimientoDetalleId: dto.requerimientoDetalleId },
     });
 
+    const tieneCotizacionActiva = cotizacionesExistentes.some(
+      c => c.estado === EstadoCotizacion.EN_EVALUACION || c.estado === EstadoCotizacion.ELEGIDA,
+    );
+    if (tieneCotizacionActiva) {
+      throw new BadRequestException(
+        'Ya existe una cotización activa (EN_EVALUACION o ELEGIDA) para este detalle de requerimiento. No se puede crear otra.',
+      );
+    }
+
     const totalCotizado = cotizacionesExistentes.reduce((sum, c) => sum + Number(c.cantidad), 0) + Number(dto.cantidad);
     if (totalCotizado > Number(detalle.cantidadSolicitada)) {
       throw new BadRequestException(
