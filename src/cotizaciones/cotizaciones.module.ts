@@ -7,11 +7,12 @@ import { RequirementDetail } from '../requirements/entities/requirement-detail.e
 import { Requirement } from '../requirements/entities/requirement.entity';
 import { OrdenCompra } from '../compras/entities/orden-compra.entity';
 import { DetalleOrdenCompra } from '../compras/entities/detalle-orden-compra.entity';
+import { SolicitudCompra } from '../solicitudes-compra/entities/solicitud-compra.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Cotizacion, RequirementDetail, Requirement, OrdenCompra, DetalleOrdenCompra]),
+    TypeOrmModule.forFeature([Cotizacion, RequirementDetail, Requirement, OrdenCompra, DetalleOrdenCompra, SolicitudCompra]),
     AuthModule,
   ],
   controllers: [CotizacionesController],
