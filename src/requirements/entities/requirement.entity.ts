@@ -57,6 +57,9 @@ export class Requirement {
   @JoinColumn({ name: 'bodega_id' })
   bodega: Bodega;
 
+  @Column({ type: 'text', nullable: true })
+  justificativo: string | null;
+
   @OneToMany(() => RequirementDetail, (detalle) => detalle.requirement, {
     cascade: true,
     onDelete: 'CASCADE',

@@ -2,7 +2,6 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, On
 import { Proyecto } from '../../proyectos/proyecto.entity';
 import { User } from '../../users/user.entity';
 import { DetalleSolicitud } from './detalle-solicitud.entity';
-import { Cotizacion } from '../../cotizaciones/entities/cotizacion.entity';
 
 export enum EstadoSolicitud {
     PENDIENTE = 'PENDIENTE',
@@ -51,7 +50,4 @@ export class SolicitudCompra {
 
     @OneToMany(() => DetalleSolicitud, (detalle) => detalle.solicitud, { cascade: true })
     detalles: DetalleSolicitud[];
-
-    @OneToMany(() => Cotizacion, (cotizacion) => cotizacion.solicitud)
-    cotizaciones: Cotizacion[];
 }

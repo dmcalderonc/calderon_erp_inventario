@@ -36,6 +36,21 @@ export class ComprasController {
     return this.comprasService.create(createCompraDto);
   }
 
+  @Post('from-requirement/:requirementId')
+  @Roles('ADMIN', 'COMPRADOR')
+  createFromRequirement(
+    @Param('requirementId', ParseIntPipe) requirementId: number,
+    @Body() body: any,
+  ) {
+    return this.comprasService.createFromRequirement(requirementId, body);
+  }
+
+  @Get('items-en-compras')
+  @Roles('ADMIN', 'COMPRADOR')
+  getItemsEnCompras() {
+    return this.comprasService.getItemsEnCompras();
+  }
+
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR')
   findAll() {
@@ -84,6 +99,18 @@ export class ComprasController {
   async recibir(@Param('id') id: string, @Req() req: { user: JwtPayload }) {
     const usuarioId = req.user.id;
     return await this.comprasService.recibirOrden(+id, usuarioId);
+  }
+
+  @Patch(':id/recibir-item/:detalleId')
+  @Roles('ADMIN', 'BODEGUERO')
+  async recibirItem(
+    @Param('id') id: string,
+    @Param('detalleId') detalleId: string,
+    @Body('cantidadRecibida') cantidadRecibida: number,
+    @Req() req: { user: JwtPayload },
+  ) {
+    const usuarioId = req.user.id;
+    return await this.comprasService.recibirItem(+id, +detalleId, cantidadRecibida, usuarioId);
   }
 
   @Patch(':id/aprobar')

@@ -20,7 +20,11 @@ export class DetalleOrdenCompra {
   @JoinColumn({ name: 'material_id' })
   material: Material;
 
+  @Column({ name: 'ordenCompraId', type: 'int', nullable: true })
+  ordenCompraId: number | null;
+
   @ManyToOne(() => OrdenCompra, (orden) => orden.detalles)
+  @JoinColumn({ name: 'ordenCompraId' })
   ordenCompra: OrdenCompra;
 
   @Column({ name: 'requerimiento_detalle_id', type: 'int', nullable: true })
@@ -35,6 +39,9 @@ export class DetalleOrdenCompra {
   @Column({ type: 'text', nullable: true })
   observaciones: string | null;
 
-  @Column({ name: 'archivo_adjunto_url', type: 'varchar', nullable: true })
+  @Column({ name: 'archivoAdjuntoUrl', type: 'varchar', nullable: true })
   archivoAdjuntoUrl: string | null;
+
+  @Column({ name: 'cantidad_recibida', type: 'int', default: 0 })
+  cantidadRecibida: number;
 }

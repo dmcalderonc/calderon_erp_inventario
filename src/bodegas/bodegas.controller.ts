@@ -29,7 +29,7 @@ export class BodegasController {
   }
 
   @Get()
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'SOLICITANTE', 'COMPRADOR')
   findAll(@Query('includeSuspended') includeSuspended?: string) {
     return this.bodegasService.findAll(includeSuspended === 'true');
   }

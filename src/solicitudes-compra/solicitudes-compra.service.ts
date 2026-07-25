@@ -53,7 +53,6 @@ export class SolicitudesCompraService {
   async findAll(estado?: EstadoSolicitud, proyectoId?: string): Promise<SolicitudCompra[]> {
     const query = this.solicitudRepository.createQueryBuilder('solicitud')
       .leftJoinAndSelect('solicitud.detalles', 'detalles')
-      .leftJoinAndSelect('solicitud.cotizaciones', 'cotizaciones')
       .leftJoinAndSelect('solicitud.proyecto', 'proyecto')
       .leftJoinAndSelect('solicitud.usuarioSolicitante', 'usuario');
 
@@ -94,7 +93,7 @@ export class SolicitudesCompraService {
   async findOne(id: number): Promise<SolicitudCompra> {
     const solicitud = await this.solicitudRepository.findOne({
       where: { id },
-      relations: { detalles: true, cotizaciones: true, proyecto: true, usuarioSolicitante: true },
+      relations: { detalles: true, proyecto: true, usuarioSolicitante: true },
     });
     if (!solicitud) {
       throw new NotFoundException(`Solicitud #${id} no encontrada`);
