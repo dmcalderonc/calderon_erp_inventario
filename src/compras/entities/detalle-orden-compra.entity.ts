@@ -41,4 +41,7 @@ export class DetalleOrdenCompra {
 
   @Column({ name: 'archivoAdjuntoUrl', type: 'varchar', nullable: true })
   archivoAdjuntoUrl: string | null;
+
+  @Column({ name: 'cantidad_recibida', type: 'int', default: 0 })
+  cantidadRecibida: number;
 }

@@ -101,6 +101,18 @@ export class ComprasController {
     return await this.comprasService.recibirOrden(+id, usuarioId);
   }
 
+  @Patch(':id/recibir-item/:detalleId')
+  @Roles('ADMIN', 'BODEGUERO')
+  async recibirItem(
+    @Param('id') id: string,
+    @Param('detalleId') detalleId: string,
+    @Body('cantidadRecibida') cantidadRecibida: number,
+    @Req() req: { user: JwtPayload },
+  ) {
+    const usuarioId = req.user.id;
+    return await this.comprasService.recibirItem(+id, +detalleId, cantidadRecibida, usuarioId);
+  }
+
   @Patch(':id/aprobar')
   @Roles('ADMIN')
   async aprobar(@Param('id') id: string) {

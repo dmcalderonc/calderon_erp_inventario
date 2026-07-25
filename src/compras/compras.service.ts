@@ -147,6 +147,123 @@ export class ComprasService {
     return detallesEnCompras;
   }
 
+  async recibirItem(ocId: number, detalleId: number, cantidadRecibida: number, usuarioId: string) {
+    const orden = await this.ocRepository.findOne({
+      where: { id: ocId },
+      relations: { detalles: true },
+    });
+
+    if (!orden) {
+      throw new NotFoundException(`Orden de compra #${ocId} no encontrada.`);
+    }
+
+    if (orden.estado !== 'EMITIDA' && orden.estado !== 'RECIBIDA_PARCIAL') {
+      throw new BadRequestException(
+        `Solo se pueden recibir ítems de órdenes en estado EMITIDA o RECIBIDA_PARCIAL. Estado actual: ${orden.estado}`,
+      );
+    }
+
+    const detalle = orden.detalles?.find(d => d.id === detalleId);
+    if (!detalle) {
+      throw new NotFoundException(`Detalle #${detalleId} no pertenece a la orden de compra #${ocId}.`);
+    }
+
+    const cantidadPendiente = Number(detalle.cantidad) - Number(detalle.cantidadRecibida || 0);
+    if (cantidadRecibida <= 0) {
+      throw new BadRequestException('La cantidad recibida debe ser mayor a 0.');
+    }
+    if (cantidadRecibida > cantidadPendiente) {
+      throw new BadRequestException(
+        `La cantidad recibida (${cantidadRecibida}) excede la cantidad pendiente (${cantidadPendiente}) para el ítem #${detalleId}.`,
+      );
+    }
+
+    await this.movimientosService.registrarMovimiento(
+      {
+        tipo: TipoMovimiento.INGRESO,
+        observaciones: `Recepción de ítem #${detalleId} de OC #${orden.codigo}`,
+        bodegaDestinoId: orden.bodegaDestinoId || 1,
+        detalles: [{ materialId: Number(detalle.materialId), cantidad: cantidadRecibida }],
+      },
+      usuarioId,
+    );
+
+    const nuevoRecibido = Number(detalle.cantidadRecibida || 0) + cantidadRecibida;
+    await this.detalleOcRepository.update(detalleId, { cantidadRecibida: nuevoRecibido });
+
+    if (detalle.requerimientoDetalleId) {
+      const reqDetalle = await this.reqDetalleRepository.findOne({
+        where: { id: detalle.requerimientoDetalleId },
+      });
+      if (reqDetalle) {
+        const despachadaActual = Number(reqDetalle.cantidadDespachada || 0);
+        await this.reqDetalleRepository.update(reqDetalle.id, {
+          cantidadDespachada: despachadaActual + cantidadRecibida,
+        });
+      }
+    }
+
+    const detallesActualizados = await this.detalleOcRepository.find({
+      where: { ordenCompraId: ocId },
+    });
+
+    const todosRecibidos = detallesActualizados.every(d => Number(d.cantidadRecibida || 0) >= Number(d.cantidad));
+    const algunoRecibido = detallesActualizados.some(d => Number(d.cantidadRecibida || 0) > 0);
+
+    let nuevoEstado = orden.estado;
+    if (todosRecibidos) {
+      nuevoEstado = 'RECIBIDA';
+    } else if (algunoRecibido) {
+      nuevoEstado = 'RECIBIDA_PARCIAL';
+    }
+    await this.ocRepository.update(ocId, { estado: nuevoEstado });
+    orden.estado = nuevoEstado;
+
+    try {
+      await this.auditModel.create({
+        accion: 'RECIBIR_ITEM_OC',
+        entidad: 'DetalleOrdenCompra',
+        entidadId: String(detalleId),
+        usuarioId,
+        detalles: {
+          ordenId: ocId,
+          codigo: orden.codigo,
+          detalleId,
+          cantidadRecibida,
+          nuevoEstado: orden.estado,
+        },
+      });
+    } catch (e) {
+      this.logger.error('Error al registrar auditoría en MongoDB:', e);
+    }
+
+    this.eventEmitter.emit('notificacion.crear', {
+      tipo: 'OC_ITEM_RECIBIDO',
+      titulo: 'Ítem de OC recibido',
+      mensaje: `Se recibió ${cantidadRecibida} uds del material #${detalle.materialId} en la OC ${orden.codigo}. Estado: ${orden.estado}.`,
+      entidad: 'OrdenCompra',
+      entidadId: String(ocId),
+      rolDestino: 'ADMIN',
+    });
+
+    if (todosRecibidos) {
+      this.eventEmitter.emit('notificacion.crear', {
+        tipo: 'OC_COMPLETAMENTE_RECIBIDA',
+        titulo: 'Orden de compra completamente recibida',
+        mensaje: `La orden de compra ${orden.codigo} fue recibida en su totalidad. Stock actualizado.`,
+        entidad: 'OrdenCompra',
+        entidadId: String(ocId),
+        rolDestino: 'SOLICITANTE',
+      });
+    }
+
+    return {
+      message: `Ítem #${detalleId} recibido. Cantidad: ${cantidadRecibida}. Estado OC: ${orden.estado}.`,
+      ocEstado: orden.estado,
+      todosRecibidos,
+    };
+  }
+
   async recibirOrden(id: number, usuarioId: string) {
     const orden = await this.ocRepository.findOne({
       where: { id },
@@ -161,32 +278,46 @@ export class ComprasService {
       throw new BadRequestException(`La orden de compra #${id} ya fue recibida.`);
     }
 
-    if (orden.estado !== 'EMITIDA') {
-      throw new BadRequestException(`Solo se pueden recibir órdenes en estado EMITIDA. Estado actual: ${orden.estado}`);
+    if (orden.estado !== 'EMITIDA' && orden.estado !== 'RECIBIDA_PARCIAL') {
+      throw new BadRequestException(`Solo se pueden recibir órdenes en estado EMITIDA o RECIBIDA_PARCIAL. Estado actual: ${orden.estado}`);
     }
 
-    orden.estado = 'RECIBIDA';
-    await this.ocRepository.save(orden);
+    const detallesSinRecibir = (orden.detalles || []).filter(d => Number(d.cantidadRecibida || 0) < Number(d.cantidad));
+    if (detallesSinRecibir.length === 0) {
+      throw new BadRequestException('Todos los ítems ya fueron recibidos.');
+    }
 
-    const detallesMovimiento = (orden.detalles || []).map(d => ({
-      materialId: Number(d.materialId),
-      cantidad: Number(d.cantidad),
-    }));
+    for (const det of detallesSinRecibir) {
+      const cantidadPendiente = Number(det.cantidad) - Number(det.cantidadRecibida || 0);
+      await this.detalleOcRepository.update(det.id, {
+        cantidadRecibida: Number(det.cantidad),
+      });
 
-    if (detallesMovimiento.length > 0) {
+      if (det.requerimientoDetalleId) {
+        const reqDetalle = await this.reqDetalleRepository.findOne({
+          where: { id: det.requerimientoDetalleId },
+        });
+        if (reqDetalle) {
+          const despachadaActual = Number(reqDetalle.cantidadDespachada || 0);
+          await this.reqDetalleRepository.update(reqDetalle.id, {
+            cantidadDespachada: despachadaActual + cantidadPendiente,
+          });
+        }
+      }
+
       await this.movimientosService.registrarMovimiento(
         {
           tipo: TipoMovimiento.INGRESO,
-          observaciones: `Recepción de OC #${orden.codigo}`,
+          observaciones: `Recepción de ítem #${det.id} de OC #${orden.codigo}`,
           bodegaDestinoId: orden.bodegaDestinoId || 1,
-          detalles: detallesMovimiento,
+          detalles: [{ materialId: Number(det.materialId), cantidad: cantidadPendiente }],
         },
         usuarioId,
       );
-      this.eventEmitter.emit('orden.recibida', {
-        detalles: detallesMovimiento,
-      });
     }
+
+    await this.ocRepository.update(id, { estado: 'RECIBIDA' });
+    orden.estado = 'RECIBIDA';
 
     try {
       await this.auditModel.create({
@@ -209,11 +340,23 @@ export class ComprasService {
       rolDestino: 'ADMIN',
     });
 
+    this.eventEmitter.emit('notificacion.crear', {
+      tipo: 'OC_COMPLETAMENTE_RECIBIDA',
+      titulo: 'Orden de compra completamente recibida',
+      mensaje: `La orden de compra ${orden.codigo} fue recibida en su totalidad. Stock actualizado.`,
+      entidad: 'OrdenCompra',
+      entidadId: String(id),
+      rolDestino: 'SOLICITANTE',
+    });
+
     return { message: `Orden de compra ${orden.codigo} marcada como RECIBIDA y stock actualizado.` };
   }
 
   async aprobar(id: number): Promise<OrdenCompra> {
-    const orden = await this.ocRepository.findOne({ where: { id } });
+    const orden = await this.ocRepository.findOne({
+      where: { id },
+      relations: { detalles: { material: true } },
+    });
 
     if (!orden) {
       throw new NotFoundException(`Orden de compra #${id} no encontrada.`);
@@ -226,18 +369,39 @@ export class ComprasService {
     }
 
     orden.estado = 'EMITIDA';
-    const ocActualizada = await this.ocRepository.save(orden);
+    await this.ocRepository.update(id, { estado: 'EMITIDA' });
+    orden.estado = 'EMITIDA';
+
+    const resumenItems = (orden.detalles || []).map(d => {
+      const nombre = d.material?.nombre || `Material #${d.materialId}`;
+      const sub = Number(d.cantidad) * Number(d.precioUnitario);
+      return `${nombre}: ${d.cantidad} uds × $${Number(d.precioUnitario).toFixed(2)} = $${sub.toFixed(2)}`;
+    }).join('\n');
+
+    const totalStr = Number(orden.total) > 0 ? `Total: $${Number(orden.total).toFixed(2)}` : '';
 
     this.eventEmitter.emit('notificacion.crear', {
       tipo: 'OC_APROBADA',
       titulo: 'Orden de compra aprobada',
-      mensaje: `La orden de compra ${orden.codigo} fue aprobada por el administrador y está lista para ser gestionada.`,
+      mensaje: `La OC ${orden.codigo} fue aprobada por el administrador.\n${resumenItems}\n${totalStr}\nPuedes proceder con la compra.`,
       entidad: 'OrdenCompra',
       entidadId: String(id),
       rolDestino: 'COMPRADOR',
     });
 
-    return ocActualizada;
+    this.eventEmitter.emit('notificacion.crear', {
+      tipo: 'OC_PENDIENTE_RECEPCION',
+      titulo: 'Orden de compra pendiente de recepción',
+      mensaje: `La OC ${orden.codigo} fue aprobada y está pendiente de recepción.\n${resumenItems}\n${totalStr}`,
+      entidad: 'OrdenCompra',
+      entidadId: String(id),
+      rolDestino: 'BODEGUERO',
+    });
+
+    return this.ocRepository.findOne({
+      where: { id },
+      relations: { detalles: { material: true }, proveedor: true },
+    }) as Promise<OrdenCompra>;
   }
 
   async findAll() {

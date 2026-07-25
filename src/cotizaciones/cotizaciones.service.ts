@@ -236,10 +236,16 @@ export class CotizacionesService {
 
       await queryRunner.commitTransaction();
 
+      const itemsDetalle = cotizacionesElegidas.map(cot => {
+        const materialNombre = cot.requerimientoDetalle?.material?.nombre || `Material #${cot.requerimientoDetalle?.materialId}`;
+        const sub = Number(cot.cantidad) * Number(cot.precioUnitario);
+        return `${materialNombre}: ${cot.cantidad} uds × $${Number(cot.precioUnitario).toFixed(2)} = $${sub.toFixed(2)}`;
+      }).join('\n');
+
       this.eventEmitter.emit('notificacion.crear', {
         tipo: 'OC_GENERADA',
         titulo: 'Orden de compra generada',
-        mensaje: `Se generó la orden de compra ${codigo} desde cotizaciones del REQ-${String(requirementId).padStart(3, '0')}. ${cotizacionesElegidas.length} ítems. Pendiente de aprobación.`,
+        mensaje: `Se generó la OC ${codigo} desde REQ-${String(requirementId).padStart(3, '0')}. ${cotizacionesElegidas.length} ítems.\n${itemsDetalle}\nSubtotal: $${subtotal.toFixed(2)} | Impuestos (15%): $${impuestos.toFixed(2)} | Total: $${total.toFixed(2)}.\nPendiente de aprobación.`,
         entidad: 'OrdenCompra',
         entidadId: String(ocGuardada.id),
         rolDestino: 'ADMIN',
