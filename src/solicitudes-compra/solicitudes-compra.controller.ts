@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { SolicitudesCompraService } from './solicitudes-compra.service';
 import { CreateSolicitudesCompraDto } from './dto/create-solicitudes-compra.dto';
+import { UpdateSolicitudesCompraDto } from './dto/update-solicitudes-compra.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { ProyectoAccessGuard } from '../auth/guards/ProyectoAccessGuard';
@@ -46,7 +47,7 @@ export class SolicitudesCompraController {
 
   @Patch(':id')
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  update(@Param('id') id: string, @Body() updateDto: any, @Req() req: { user: JwtPayload }) {
+  update(@Param('id') id: string, @Body() updateDto: UpdateSolicitudesCompraDto, @Req() req: { user: JwtPayload }) {
     return this.solicitudesService.update(
       +id,
       updateDto,

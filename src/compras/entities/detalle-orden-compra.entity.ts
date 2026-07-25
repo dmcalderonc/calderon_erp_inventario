@@ -44,4 +44,7 @@ export class DetalleOrdenCompra {
 
   @Column({ name: 'cantidad_recibida', type: 'int', default: 0 })
   cantidadRecibida: number;
+
+  @Column({ name: 'justificativo_recepcion', type: 'text', nullable: true })
+  justificativoRecepcion: string | null;
 }

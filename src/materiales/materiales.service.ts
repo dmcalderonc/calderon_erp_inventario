@@ -136,6 +136,7 @@ export class MaterialesService {
     const materialIds = data.map(m => m.id);
 
     let stockMap: Record<number, { disponible: number; reservada: number }> = {};
+    let bodegaStockMap: Record<number, { bodegaId: number; bodegaNombre: string; disponible: number; reservada: number }[]> = {};
     if (materialIds.length > 0) {
       const stockRows = await this.dataSource
         .createQueryBuilder()
@@ -150,12 +151,36 @@ export class MaterialesService {
       stockMap = Object.fromEntries(
         stockRows.map((r: any) => [r.materialId, { disponible: Number(r.disponible), reservada: Number(r.reservada) }])
       );
+
+      const bodegaRows = await this.dataSource
+        .createQueryBuilder()
+        .select('sb.material_id', 'materialId')
+        .addSelect('sb.bodega_id', 'bodegaId')
+        .addSelect('b.nombre', 'bodegaNombre')
+        .addSelect('COALESCE(sb.cantidad_disponible, 0)', 'disponible')
+        .addSelect('COALESCE(sb.cantidad_reservada, 0)', 'reservada')
+        .from('stock_bodega', 'sb')
+        .innerJoin('bodegas', 'b', 'b.id = sb.bodega_id')
+        .where('sb.material_id IN (:...ids)', { ids: materialIds })
+        .getRawMany();
+
+      bodegaStockMap = materialIds.reduce((acc, id) => ({ ...acc, [id]: [] }), {} as Record<number, any[]>);
+      for (const row of bodegaRows) {
+        if (!bodegaStockMap[row.materialId]) bodegaStockMap[row.materialId] = [];
+        bodegaStockMap[row.materialId].push({
+          bodegaId: Number(row.bodegaId),
+          bodegaNombre: row.bodegaNombre,
+          disponible: Number(row.disponible),
+          reservada: Number(row.reservada),
+        });
+      }
     }
 
     const enrichedData = data.map(m => ({
       ...m,
       stockDisponible: stockMap[m.id]?.disponible ?? 0,
       stockReservado: stockMap[m.id]?.reservada ?? 0,
+      stockPorBodega: bodegaStockMap[m.id] || [],
     }));
 
     return {

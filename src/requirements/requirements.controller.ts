@@ -56,6 +56,20 @@ export class RequirementsController {
     );
   }
 
+  @Patch(':id/despachar')
+  @Roles('ADMIN', 'BODEGUERO')
+  despachar(
+    @Param('id') id: string,
+    @Req() req: { user: JwtPayload },
+  ) {
+    return this.requirementsService.despachar(
+      +id,
+      req.user.id,
+      req.user.rol,
+      req.user.bodegaIds,
+    );
+  }
+
   @Patch(':id/evaluar-item/:detalleId')
   @Roles('ADMIN')
   evaluarItem(

@@ -5,6 +5,7 @@ import { Traspaso, EstadoTraspaso } from './entities/traspaso.entity';
 import { DetalleTraspaso } from './entities/detalle-traspaso.entity';
 import { Inventario } from '../inventario/inventario.entity';
 import { CreateTraspasoDto } from './dto/create-traspaso.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class TraspasosService {
@@ -16,6 +17,7 @@ export class TraspasosService {
     @InjectRepository(Inventario)
     private readonly inventarioRepo: Repository<Inventario>,
     private dataSource: DataSource,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   private generarCodigo(): string {
@@ -80,14 +82,41 @@ export class TraspasosService {
     return traspaso;
   }
 
+  async autorizar(id: number, adminId: string) {
+    const traspaso = await this.findOne(id);
+    if (traspaso.estado !== EstadoTraspaso.PENDIENTE) {
+      throw new BadRequestException(`Solo se pueden autorizar traspasos en estado PENDIENTE. Estado actual: ${traspaso.estado}`);
+    }
+
+    traspaso.autorizadoPorId = adminId;
+    traspaso.fechaAutorizacion = new Date();
+    await this.traspasoRepo.save(traspaso);
+
+    this.eventEmitter.emit('notificacion.crear', {
+      tipo: 'TRASPASO_AUTORIZADO',
+      titulo: 'Traspaso autorizado',
+      mensaje: `El traspaso ${traspaso.codigo} fue autorizado por el administrador. Bodega origen: ${traspaso.bodegaOrigen?.nombre || 'N/A'}. Bodega destino: ${traspaso.bodegaDestino?.nombre || 'N/A'}.`,
+      entidad: 'Traspaso',
+      entidadId: String(id),
+      rolDestino: 'BODEGUERO',
+    });
+
+    return this.findOne(id);
+  }
+
   async confirmarEnvio(id: number, usuarioId: string, rol: string, bodegaIds?: number[]) {
     const traspaso = await this.findOne(id);
     if (traspaso.estado !== EstadoTraspaso.PENDIENTE) {
       throw new BadRequestException(`El traspaso debe estar en estado PENDIENTE para enviar. Estado actual: ${traspaso.estado}`);
     }
 
-    if (rol === 'BODEGUERO' && bodegaIds && !bodegaIds.includes(traspaso.bodegaOrigenId)) {
-      throw new ForbiddenException('No tiene permisos para gestionar esta bodega');
+    if (rol === 'BODEGUERO') {
+      if (!traspaso.autorizadoPorId) {
+        throw new BadRequestException('El traspaso aún no ha sido autorizado por un administrador');
+      }
+      if (bodegaIds && !bodegaIds.includes(traspaso.bodegaOrigenId)) {
+        throw new ForbiddenException('No tiene permisos para gestionar esta bodega');
+      }
     }
 
     const queryRunner = this.dataSource.createQueryRunner();

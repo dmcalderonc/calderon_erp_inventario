@@ -53,7 +53,7 @@ export class ProveedoresController {
   }
 
   @Patch(':id')
-  @Roles('ADMIN', 'COMPRADOR')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Actualizar un proveedor' })
   update(
     @Param('id') id: string,

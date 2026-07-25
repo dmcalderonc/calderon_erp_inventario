@@ -14,9 +14,11 @@ export class DespachosController {
   @Post('entrega-directa')
   @Roles('ADMIN', 'BODEGUERO')
   async entregaDirecta(@Body() dto: CreateEntregaDirectaDto, @Req() req: { user: JwtPayload }) {
+    const bodegaIds = req.user.rol === 'BODEGUERO' ? req.user.bodegaIds : undefined;
     return await this.despachosService.registrarEntregaDirecta(
       dto,
       req.user.id,
+      bodegaIds,
     );
   }
 }

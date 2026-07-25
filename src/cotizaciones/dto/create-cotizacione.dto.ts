@@ -1,21 +1,34 @@
-import { IsNumber, IsOptional, IsString, IsEnum } from 'class-validator';
-import { EstadoCotizacion } from '../entities/cotizacion.entity';
+import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateCotizacioneDto {
   @IsNumber()
-  solicitudId: number;
+  requerimientoDetalleId: number;
 
   @IsNumber()
   proveedorId: number;
 
   @IsNumber()
-  precioOfertadoTotal: number;
+  @Min(1)
+  cantidad: number;
+
+  @IsNumber()
+  @Min(0)
+  precioUnitario: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tiempoEntregaDias?: number;
+
+  @IsOptional()
+  @IsString()
+  marca?: string;
+
+  @IsOptional()
+  @IsString()
+  observaciones?: string;
 
   @IsOptional()
   @IsString()
   archivoRespaldoUrl?: string;
-
-  @IsOptional()
-  @IsEnum(EstadoCotizacion)
-  estado?: EstadoCotizacion;
 }

@@ -38,6 +38,7 @@ export class RequirementsService {
       detalles: createDto.detalles.map((detalle) => ({
         materialId: detalle.materialId,
         cantidadSolicitada: detalle.cantidadSolicitada,
+        cantidadOriginal: detalle.cantidadSolicitada,
       })),
     });
 
@@ -148,6 +149,7 @@ export class RequirementsService {
         requerimientoId: detalle.requerimientoId,
         materialId: detalle.materialId,
         cantidadSolicitada: stockDisponible,
+        cantidadOriginal: stockDisponible,
         cantidadDespachada: 0,
         estadoItem: ItemStatus.APROBADO_BODEGA,
       });
@@ -283,6 +285,21 @@ export class RequirementsService {
         if (det.estadoItem !== ItemStatus.APROBADO_BODEGA) continue;
 
         const cantidadDespachada = Number(det.cantidadDespachada || det.cantidadSolicitada);
+
+        const stock = await queryRunner.manager.findOne(Inventario, {
+          where: { materialId: Number(det.materialId), bodegaId: req.bodegaId },
+        });
+
+        if (stock) {
+          const reservadaActual = Number(stock.cantidad_reservada || 0);
+          const nuevaReservada = Math.max(0, reservadaActual - cantidadDespachada);
+          const consumida = reservadaActual - nuevaReservada;
+
+          stock.cantidad_reservada = nuevaReservada;
+          stock.cantidad_disponible = Math.max(0, Number(stock.cantidad_disponible || 0) - consumida);
+          await queryRunner.manager.save(stock);
+        }
+
         det.cantidadDespachada = cantidadDespachada;
         det.estadoItem = ItemStatus.DESPACHADO;
         await queryRunner.manager.save(det);
@@ -339,6 +356,34 @@ export class RequirementsService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  async despachar(id: number, userId: string, rol: string, bodegaIds?: number[]) {
+    if (rol !== 'ADMIN' && rol !== 'BODEGUERO') {
+      throw new ForbiddenException('Solo Administrador o Bodeguero pueden despachar');
+    }
+
+    const req = await this.reqRepository.findOne({
+      where: { id },
+      relations: { detalles: true, bodega: true },
+    });
+
+    if (!req) throw new NotFoundException(`Requerimiento #${id} no encontrado`);
+
+    if (req.estado !== RequirementStatus.APROBADO && req.estado !== RequirementStatus.PARCIALMENTE_ATENDIDO) {
+      throw new BadRequestException('Solo se pueden despachar requerimientos en estado APROBADO o PARCIALMENTE_ATENDIDO');
+    }
+
+    if (rol === 'BODEGUERO' && bodegaIds && !bodegaIds.includes(req.bodegaId)) {
+      throw new ForbiddenException('No tiene permisos para despachar en esta bodega');
+    }
+
+    const itemsDespachables = req.detalles.filter(d => d.estadoItem === ItemStatus.APROBADO_BODEGA);
+    if (itemsDespachables.length === 0) {
+      throw new BadRequestException('No hay ítems en estado APROBADO_BODEGA para despachar');
+    }
+
+    return this.despacharRequerimiento(req);
   }
 
   async findAll(userId?: string, rol?: string) {
@@ -444,6 +489,7 @@ export class RequirementsService {
               requerimientoId: det.requerimientoId,
               materialId: det.materialId,
               cantidadSolicitada: cantidadRestante,
+              cantidadOriginal: cantidadRestante,
               cantidadDespachada: 0,
               estadoItem: ItemStatus.EN_COMPRAS,
             });

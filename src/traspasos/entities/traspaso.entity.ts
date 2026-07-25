@@ -64,6 +64,16 @@ export class Traspaso {
   @Column({ name: 'requerimiento_detalle_id', type: 'int', nullable: true })
   requerimientoDetalleId: number | null;
 
+  @Column({ name: 'autorizado_por_id', type: 'uuid', nullable: true })
+  autorizadoPorId: string | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'autorizado_por_id' })
+  autorizadoPor: User | null;
+
+  @Column({ name: 'fecha_autorizacion', type: 'timestamp', nullable: true })
+  fechaAutorizacion: Date | null;
+
   @OneToMany(() => DetalleTraspaso, (d) => d.traspaso, { cascade: true, onDelete: 'CASCADE' })
   detalles: DetalleTraspaso[];
 }

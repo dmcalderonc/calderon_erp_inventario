@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { Inventario } from '../inventario/inventario.entity';
@@ -37,7 +38,7 @@ export class DespachosService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async registrarEntregaDirecta(dto: CreateEntregaDirectaDto, usuarioFirmaId: string) {
+  async registrarEntregaDirecta(dto: CreateEntregaDirectaDto, usuarioFirmaId: string, bodegaIds?: number[]) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -55,6 +56,10 @@ export class DespachosService {
       const bodegaId = proyecto.bodega?.id;
       if (!bodegaId) {
         throw new BadRequestException('El proyecto no tiene una bodega asignada.');
+      }
+
+      if (bodegaIds && bodegaIds.length > 0 && !bodegaIds.includes(Number(bodegaId))) {
+        throw new ForbiddenException('No tiene permisos para despachar a esta bodega');
       }
 
       const movement = queryRunner.manager.create(MovimientoInventario, {

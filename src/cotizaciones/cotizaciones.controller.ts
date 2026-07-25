@@ -10,6 +10,8 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { CotizacionesService } from './cotizaciones.service';
+import { CreateCotizacioneDto } from './dto/create-cotizacione.dto';
+import { UpdateCotizacioneDto } from './dto/update-cotizacione.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -39,8 +41,8 @@ export class CotizacionesController {
 
   @Post()
   @Roles('ADMIN', 'COMPRADOR')
-  create(@Body() body: any) {
-    return this.cotizacionesService.create(body);
+  create(@Body() dto: CreateCotizacioneDto) {
+    return this.cotizacionesService.create(dto);
   }
 
   @Get()
@@ -57,8 +59,8 @@ export class CotizacionesController {
 
   @Patch(':id')
   @Roles('ADMIN', 'COMPRADOR')
-  update(@Param('id') id: string, @Body() body: any) {
-    return this.cotizacionesService.update(+id, body);
+  update(@Param('id') id: string, @Body() dto: UpdateCotizacioneDto) {
+    return this.cotizacionesService.update(+id, dto);
   }
 
   @Patch(':id/seleccionar')

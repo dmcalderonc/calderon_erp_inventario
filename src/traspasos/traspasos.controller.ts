@@ -41,6 +41,12 @@ export class TraspasosController {
     return this.traspasosService.confirmarRecepcion(+id, req.user.id, req.user.rol, req.user.bodegaIds);
   }
 
+  @Patch(':id/autorizar')
+  @Roles('ADMIN')
+  autorizar(@Param('id') id: string, @Req() req: { user: JwtPayload }) {
+    return this.traspasosService.autorizar(+id, req.user.id);
+  }
+
   @Patch(':id/cancelar')
   @Roles('ADMIN')
   cancelar(@Param('id') id: string) {

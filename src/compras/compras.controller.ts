@@ -107,10 +107,12 @@ export class ComprasController {
     @Param('id') id: string,
     @Param('detalleId') detalleId: string,
     @Body('cantidadRecibida') cantidadRecibida: number,
+    @Body('justificativo') justificativo: string | undefined,
     @Req() req: { user: JwtPayload },
   ) {
     const usuarioId = req.user.id;
-    return await this.comprasService.recibirItem(+id, +detalleId, cantidadRecibida, usuarioId);
+    const bodegaIds = req.user.rol === 'BODEGUERO' ? req.user.bodegaIds : undefined;
+    return await this.comprasService.recibirItem(+id, +detalleId, cantidadRecibida, usuarioId, justificativo, bodegaIds);
   }
 
   @Patch(':id/aprobar')

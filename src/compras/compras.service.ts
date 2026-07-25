@@ -147,7 +147,7 @@ export class ComprasService {
     return detallesEnCompras;
   }
 
-  async recibirItem(ocId: number, detalleId: number, cantidadRecibida: number, usuarioId: string) {
+  async recibirItem(ocId: number, detalleId: number, cantidadRecibida: number, usuarioId: string, justificativo?: string, bodegaIds?: number[]) {
     const orden = await this.ocRepository.findOne({
       where: { id: ocId },
       relations: { detalles: true },
@@ -155,6 +155,13 @@ export class ComprasService {
 
     if (!orden) {
       throw new NotFoundException(`Orden de compra #${ocId} no encontrada.`);
+    }
+
+    if (bodegaIds && bodegaIds.length > 0) {
+      const bodegaOC = orden.bodegaDestinoId;
+      if (bodegaOC && !bodegaIds.includes(bodegaOC)) {
+        throw new ForbiddenException('No tiene permisos para recibir en esta bodega');
+      }
     }
 
     if (orden.estado !== 'EMITIDA' && orden.estado !== 'RECIBIDA_PARCIAL') {
@@ -178,6 +185,13 @@ export class ComprasService {
       );
     }
 
+    const tieneDiferencia = cantidadRecibida !== Number(detalle.cantidad);
+    if (tieneDiferencia && !justificativo?.trim()) {
+      throw new BadRequestException(
+        `La cantidad recibida (${cantidadRecibida}) difiere de la ordenada (${Number(detalle.cantidad)}). Se requiere un justificativo.`,
+      );
+    }
+
     await this.movimientosService.registrarMovimiento(
       {
         tipo: TipoMovimiento.INGRESO,
@@ -189,7 +203,10 @@ export class ComprasService {
     );
 
     const nuevoRecibido = Number(detalle.cantidadRecibida || 0) + cantidadRecibida;
-    await this.detalleOcRepository.update(detalleId, { cantidadRecibida: nuevoRecibido });
+    await this.detalleOcRepository.update(detalleId, {
+      cantidadRecibida: nuevoRecibido,
+      justificativoRecepcion: justificativo?.trim() || null,
+    });
 
     if (detalle.requerimientoDetalleId) {
       const reqDetalle = await this.reqDetalleRepository.findOne({
@@ -230,11 +247,25 @@ export class ComprasService {
           codigo: orden.codigo,
           detalleId,
           cantidadRecibida,
+          cantidadOrdenada: Number(detalle.cantidad),
+          tieneDiferencia,
+          justificativo: justificativo?.trim() || null,
           nuevoEstado: orden.estado,
         },
       });
     } catch (e) {
       this.logger.error('Error al registrar auditoría en MongoDB:', e);
+    }
+
+    if (tieneDiferencia) {
+      this.eventEmitter.emit('notificacion.crear', {
+        tipo: 'RECEPCION_DIFERENCIA',
+        titulo: 'Diferencia en recepción de OC',
+        mensaje: `Se recibieron ${cantidadRecibida} uds del material #${detalle.materialId} en la OC ${orden.codigo}, pero se ordenaron ${Number(detalle.cantidad)}. Justificativo: "${justificativo}". Pendiente de revisión.`,
+        entidad: 'OrdenCompra',
+        entidadId: String(ocId),
+        rolDestino: 'ADMIN',
+      });
     }
 
     this.eventEmitter.emit('notificacion.crear', {
@@ -258,9 +289,12 @@ export class ComprasService {
     }
 
     return {
-      message: `Ítem #${detalleId} recibido. Cantidad: ${cantidadRecibida}. Estado OC: ${orden.estado}.`,
+      message: tieneDiferencia
+        ? `Ítem #${detalleId} recibido con diferencia. Justificativo registrado. Estado OC: ${orden.estado}.`
+        : `Ítem #${detalleId} recibido. Cantidad: ${cantidadRecibida}. Estado OC: ${orden.estado}.`,
       ocEstado: orden.estado,
       todosRecibidos,
+      tieneDiferencia,
     };
   }
 

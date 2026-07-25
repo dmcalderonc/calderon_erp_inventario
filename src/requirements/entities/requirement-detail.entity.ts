@@ -33,6 +33,8 @@ export class RequirementDetail {
   @Column({ name: 'cantidad_solicitada', type: 'int' })
   cantidadSolicitada: number;
 
+  @Column({ name: 'cantidad_original', type: 'int', nullable: true })
+  cantidadOriginal: number | null;
 
   @Column({ name: 'cantidad_despachada', type: 'int', default: 0 })
   cantidadDespachada: number;
