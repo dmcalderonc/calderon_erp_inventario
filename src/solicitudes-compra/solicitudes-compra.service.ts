@@ -50,11 +50,15 @@ export class SolicitudesCompraService {
     }
   }
 
-  async findAll(estado?: EstadoSolicitud, proyectoId?: string): Promise<SolicitudCompra[]> {
+  async findAll(estado?: EstadoSolicitud, proyectoId?: string, userId?: string, rol?: string): Promise<SolicitudCompra[]> {
     const query = this.solicitudRepository.createQueryBuilder('solicitud')
       .leftJoinAndSelect('solicitud.detalles', 'detalles')
       .leftJoinAndSelect('solicitud.proyecto', 'proyecto')
       .leftJoinAndSelect('solicitud.usuarioSolicitante', 'usuario');
+
+    if (rol === 'SOLICITANTE' && userId) {
+      query.andWhere('solicitud.usuarioSolicitanteId = :userId', { userId });
+    }
 
     if (estado) {
       query.andWhere('solicitud.estado = :estado', { estado });
