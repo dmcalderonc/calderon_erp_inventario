@@ -32,8 +32,8 @@ export class Traspaso {
   @JoinColumn({ name: 'bodega_destino_id' })
   bodegaDestino: Bodega;
 
-  @Column({ name: 'usuario_origen_id', type: 'uuid' })
-  usuarioOrigenId: string;
+  @Column({ name: 'usuario_origen_id', type: 'uuid', nullable: true })
+  usuarioOrigenId: string | null;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'usuario_origen_id' })

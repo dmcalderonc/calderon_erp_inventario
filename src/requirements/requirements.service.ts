@@ -90,7 +90,7 @@ export class RequirementsService {
           rolDestino: 'SOLICITANTE',
         });
       } else {
-        await this.aprobarItem(detalle, req.bodegaId, queryRunner.manager);
+        await this.aprobarItem(detalle, req.bodegaId, queryRunner.manager, userId);
       }
 
       await this.recalcularEstadoMaestro(id, queryRunner.manager);
@@ -109,13 +109,14 @@ export class RequirementsService {
     detalle: RequirementDetail,
     bodegaSolicitadaId: number,
     manager: EntityManager,
+    userId?: string,
   ) {
     const stockSolicitada = await manager.findOne(Inventario, {
       where: { materialId: detalle.materialId, bodegaId: bodegaSolicitadaId },
     });
 
     if (!stockSolicitada) {
-      await this.buscarStockEnOtrasBodegas(detalle, bodegaSolicitadaId, manager);
+      await this.buscarStockEnOtrasBodegas(detalle, bodegaSolicitadaId, manager, userId);
       return;
     }
 
@@ -157,18 +158,19 @@ export class RequirementsService {
 
       // Update original with the shortage
       detalle.cantidadSolicitada = cantidadFaltante;
-      await this.buscarStockEnOtrasBodegas(detalle, bodegaSolicitadaId, manager);
+      await this.buscarStockEnOtrasBodegas(detalle, bodegaSolicitadaId, manager, userId);
       return;
     }
 
     // Case 3: No stock in requested warehouse — search other warehouses
-    await this.buscarStockEnOtrasBodegas(detalle, bodegaSolicitadaId, manager);
+    await this.buscarStockEnOtrasBodegas(detalle, bodegaSolicitadaId, manager, userId);
   }
 
   private async buscarStockEnOtrasBodegas(
     detalle: RequirementDetail,
     bodegaSolicitadaId: number,
     manager: EntityManager,
+    userId?: string,
   ) {
     const inventarios = await manager.find(Inventario, {
       where: { materialId: detalle.materialId },
@@ -184,7 +186,7 @@ export class RequirementsService {
       const disponible = (inv.cantidad_disponible || 0) - (inv.cantidad_reservada || 0);
       if (disponible >= cantidadReq) {
         // Found enough stock in another warehouse — create automatic transfer
-        await this.crearTraspasoAutomatico(detalle, inv.bodegaId, manager);
+        await this.crearTraspasoAutomatico(detalle, inv.bodegaId, manager, userId);
         return;
       }
     }
@@ -220,6 +222,7 @@ export class RequirementsService {
     detalle: RequirementDetail,
     bodegaOrigenId: number,
     manager: EntityManager,
+    userId?: string,
   ) {
     const suffix = crypto.randomUUID().slice(0, 8).toUpperCase();
     const codigo = `TRASP-${suffix}`;
@@ -228,7 +231,7 @@ export class RequirementsService {
       codigo,
       bodegaOrigenId,
       bodegaDestinoId: (await manager.findOne(Requirement, { where: { id: detalle.requerimientoId } }))?.bodegaId,
-      usuarioOrigenId: 'SYSTEM',
+      usuarioOrigenId: userId || null,
       estado: EstadoTraspaso.PENDIENTE,
       requerimientoDetalleId: detalle.id,
       detalles: [{
