@@ -28,13 +28,13 @@ export class CategoriasController {
   }
 
   @Get()
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   findAll(@Query('includeSuspended') includeSuspended?: string) {
     return this.categoriasService.findAll(includeSuspended === 'true');
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'BODEGUERO')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   findOne(@Param('id') id: string) {
     return this.categoriasService.findOne(+id);
   }
