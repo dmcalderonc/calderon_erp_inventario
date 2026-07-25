@@ -6,9 +6,10 @@ import { Model } from 'mongoose';
 import { OrdenCompra } from './entities/orden-compra.entity';
 import { DetalleOrdenCompra } from './entities/detalle-orden-compra.entity';
 import { MovimientosService } from '../movimientos/movimientos.service';
-import { Cotizacion, EstadoCotizacion } from '../cotizaciones/entities/cotizacion.entity';
 import { TipoMovimiento } from '../movimientos/entities/movimiento-inventario.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Requirement } from '../requirements/entities/requirement.entity';
+import { RequirementDetail, ItemStatus } from '../requirements/entities/requirement-detail.entity';
 
 @Injectable()
 export class ComprasService {
@@ -21,27 +22,15 @@ export class ComprasService {
     private readonly detalleOcRepository: Repository<DetalleOrdenCompra>,
     @InjectModel('AuditLog') private readonly auditModel: Model<any>,
     private readonly movimientosService: MovimientosService,
-    @InjectRepository(Cotizacion)
-    private readonly cotizacionRepository: Repository<Cotizacion>,
+    @InjectRepository(Requirement)
+    private readonly reqRepository: Repository<Requirement>,
+    @InjectRepository(RequirementDetail)
+    private readonly reqDetalleRepository: Repository<RequirementDetail>,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(dto: any) {
-    const { solicitudId, detalles, ...rest } = dto;
-
-    if (solicitudId) {
-      const cotizacion = await this.cotizacionRepository.findOne({
-        where: { solicitudId },
-      });
-
-      if (!cotizacion) {
-        throw new ForbiddenException('No existe cotización asociada a esta solicitud.');
-      }
-
-      if (cotizacion.estado !== EstadoCotizacion.ELEGIDA) {
-        throw new ForbiddenException('La cotización asociada aún no ha sido aprobada.');
-      }
-    }
+    const { detalles, ...rest } = dto;
 
     const last = await this.ocRepository.findOne({
       where: {},
@@ -81,6 +70,81 @@ export class ComprasService {
       where: { id: ocId },
       relations: { detalles: true, proveedor: true },
     });
+  }
+
+  async createFromRequirement(requirementId: number, dto: any) {
+    const requirement = await this.reqRepository.findOne({
+      where: { id: requirementId },
+      relations: { detalles: true, bodega: true, proyecto: true },
+    });
+
+    if (!requirement) {
+      throw new NotFoundException(`Requerimiento #${requirementId} no encontrado`);
+    }
+
+    const itemsEnCompras = requirement.detalles.filter(
+      d => d.estadoItem === ItemStatus.EN_COMPRAS,
+    );
+
+    if (itemsEnCompras.length === 0) {
+      throw new BadRequestException('No hay ítems en estado EN_COMPRAS en este requerimiento');
+    }
+
+    const last = await this.ocRepository.findOne({ where: {}, order: { id: 'DESC' } });
+    const nextNum = (last?.id ?? 0) + 1;
+    const codigo = `OC-${String(nextNum).padStart(5, '0')}`;
+
+    const nuevaOC = this.ocRepository.create({
+      codigo,
+      proveedorId: dto.proveedorId || null,
+      fechaEmision: new Date().toISOString().split('T')[0],
+      estado: 'PENDIENTE',
+      bodegaDestinoId: requirement.bodegaId,
+      subtotal: dto.subtotal || 0,
+      impuestos: dto.impuestos || 0,
+      total: dto.total || 0,
+    });
+
+    const ocGuardada = await this.ocRepository.save(nuevaOC) as OrdenCompra;
+
+    const detallesEntidad = itemsEnCompras.map(det => ({
+      ordenCompraId: ocGuardada.id!,
+      materialId: Number(det.materialId),
+      cantidad: Number(det.cantidadSolicitada),
+      precioUnitario: 0,
+      requerimientoDetalleId: det.id,
+      tiempoEntregaDias: dto.tiempoEntregaDias || null,
+      marca: dto.marca || null,
+      observaciones: `REQ-${String(requirementId).padStart(3, '0')}`,
+    }));
+    await this.detalleOcRepository.save(detallesEntidad);
+
+    this.eventEmitter.emit('notificacion.crear', {
+      tipo: 'OC_CREADA_DESDE_REQUERIMIENTO',
+      titulo: 'OC creada desde requerimiento',
+      mensaje: `Se creó la orden de compra ${codigo} a partir del REQ-${String(requirementId).padStart(3, '0')}. ${itemsEnCompras.length} ítems pendientes de compra.`,
+      entidad: 'OrdenCompra',
+      entidadId: String(ocGuardada.id),
+      rolDestino: 'ADMIN',
+    });
+
+    return this.ocRepository.findOne({
+      where: { id: ocGuardada.id },
+      relations: { detalles: { material: true }, proveedor: true },
+    });
+  }
+
+  async getItemsEnCompras() {
+    const detallesEnCompras = await this.reqDetalleRepository.find({
+      where: { estadoItem: ItemStatus.EN_COMPRAS },
+      relations: {
+        requirement: { bodega: true, proyecto: true, usuarioSolicitante: true },
+        material: true,
+      },
+      order: { id: 'ASC' },
+    });
+
+    return detallesEnCompras;
   }
 
   async recibirOrden(id: number, usuarioId: string) {

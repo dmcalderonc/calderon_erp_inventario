@@ -7,11 +7,13 @@ import { OrdenCompra } from './entities/orden-compra.entity';
 import { DetalleOrdenCompra } from './entities/detalle-orden-compra.entity';
 import { AuditLogSchema } from './schemas/audit-log.schema';
 import { MovimientosModule } from '../movimientos/movimientos.module';
-import { Cotizacion } from '../cotizaciones/entities/cotizacion.entity';
+import { Requirement } from '../requirements/entities/requirement.entity';
+import { RequirementDetail } from '../requirements/entities/requirement-detail.entity';
+import { Inventario } from '../inventario/inventario.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrdenCompra, DetalleOrdenCompra, Cotizacion]),
+    TypeOrmModule.forFeature([OrdenCompra, DetalleOrdenCompra, Requirement, RequirementDetail, Inventario]),
     MongooseModule.forFeature([{ name: 'AuditLog', schema: AuditLogSchema }]),
     MovimientosModule,
   ],

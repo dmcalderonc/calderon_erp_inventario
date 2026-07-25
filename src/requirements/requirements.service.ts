@@ -114,6 +114,7 @@ export class RequirementsService {
     });
 
     if (!stockSolicitada) {
+      await this.buscarStockEnOtrasBodegas(detalle, bodegaSolicitadaId, manager);
       return;
     }
 

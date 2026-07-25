@@ -36,6 +36,21 @@ export class ComprasController {
     return this.comprasService.create(createCompraDto);
   }
 
+  @Post('from-requirement/:requirementId')
+  @Roles('ADMIN', 'COMPRADOR')
+  createFromRequirement(
+    @Param('requirementId', ParseIntPipe) requirementId: number,
+    @Body() body: any,
+  ) {
+    return this.comprasService.createFromRequirement(requirementId, body);
+  }
+
+  @Get('items-en-compras')
+  @Roles('ADMIN', 'COMPRADOR')
+  getItemsEnCompras() {
+    return this.comprasService.getItemsEnCompras();
+  }
+
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR')
   findAll() {
