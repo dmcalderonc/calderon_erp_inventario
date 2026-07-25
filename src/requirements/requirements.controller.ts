@@ -32,7 +32,7 @@ export class RequirementsController {
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
   findAll(@Req() req: { user: JwtPayload }) {
-    return this.requirementsService.findAll(req.user.id, req.user.rol);
+    return this.requirementsService.findAll(req.user.id, req.user.rol, req.user.bodegaIds);
   }
 
   @Get(':id')

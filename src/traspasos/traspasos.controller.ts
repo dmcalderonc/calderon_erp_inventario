@@ -19,8 +19,8 @@ export class TraspasosController {
 
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  findAll(@Query() query: { estado?: string; bodegaOrigenId?: number; bodegaDestinoId?: number }) {
-    return this.traspasosService.findAll(query);
+  findAll(@Req() req: { user: JwtPayload }, @Query() query: { estado?: string; bodegaOrigenId?: number; bodegaDestinoId?: number }) {
+    return this.traspasosService.findAll(query, req.user.id, req.user.rol, req.user.bodegaIds);
   }
 
   @Get(':id')

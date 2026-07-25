@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, FindOptionsWhere } from 'typeorm';
+import { Repository, DataSource, FindOptionsWhere, In } from 'typeorm';
 import { Traspaso, EstadoTraspaso } from './entities/traspaso.entity';
 import { DetalleTraspaso } from './entities/detalle-traspaso.entity';
 import { Inventario } from '../inventario/inventario.entity';
@@ -48,23 +48,33 @@ export class TraspasosService {
     return this.traspasoRepo.save(traspaso);
   }
 
-  async findAll(params?: { estado?: string; bodegaOrigenId?: number; bodegaDestinoId?: number }) {
-    const where: FindOptionsWhere<Traspaso> = {};
-    if (params?.estado) where.estado = params.estado as EstadoTraspaso;
-    if (params?.bodegaOrigenId) where.bodegaOrigenId = params.bodegaOrigenId;
-    if (params?.bodegaDestinoId) where.bodegaDestinoId = params.bodegaDestinoId;
+  async findAll(params?: { estado?: string; bodegaOrigenId?: number; bodegaDestinoId?: number }, userId?: string, rol?: string, bodegaIds?: number[]) {
+    const query = this.traspasoRepo.createQueryBuilder('traspaso')
+      .leftJoinAndSelect('traspaso.bodegaOrigen', 'bodegaOrigen')
+      .leftJoinAndSelect('traspaso.bodegaDestino', 'bodegaDestino')
+      .leftJoinAndSelect('traspaso.usuarioOrigen', 'usuarioOrigen')
+      .leftJoinAndSelect('traspaso.usuarioDestino', 'usuarioDestino')
+      .leftJoinAndSelect('traspaso.detalles', 'detalles')
+      .leftJoinAndSelect('detalles.material', 'material');
 
-    return this.traspasoRepo.find({
-      where,
-      relations: {
-        bodegaOrigen: true,
-        bodegaDestino: true,
-        usuarioOrigen: true,
-        usuarioDestino: true,
-        detalles: { material: true },
-      },
-      order: { fechaCreacion: 'DESC' },
-    });
+    if (params?.estado) {
+      query.andWhere('traspaso.estado = :estado', { estado: params.estado });
+    }
+    if (params?.bodegaOrigenId) {
+      query.andWhere('traspaso.bodegaOrigenId = :bodegaOrigenId', { bodegaOrigenId: params.bodegaOrigenId });
+    }
+    if (params?.bodegaDestinoId) {
+      query.andWhere('traspaso.bodegaDestinoId = :bodegaDestinoId', { bodegaDestinoId: params.bodegaDestinoId });
+    }
+
+    if (rol === 'BODEGUERO' && bodegaIds && bodegaIds.length > 0) {
+      query.andWhere(
+        '(traspaso.bodegaOrigenId IN (:...bodegaIds) OR traspaso.bodegaDestinoId IN (:...bodegaIds))',
+        { bodegaIds },
+      );
+    }
+
+    return await query.orderBy('traspaso.fechaCreacion', 'DESC').getMany();
   }
 
   async findOne(id: number) {

@@ -389,7 +389,7 @@ export class RequirementsService {
     return this.despacharRequerimiento(req);
   }
 
-  async findAll(userId?: string, rol?: string) {
+  async findAll(userId?: string, rol?: string, bodegaIds?: number[]) {
     const where: FindOptionsWhere<Requirement> = {};
 
     if (rol === 'SOLICITANTE' && userId) {
@@ -398,6 +398,11 @@ export class RequirementsService {
 
     if (rol === 'COMPRADOR') {
       where.estado = RequirementStatus.APROBADO;
+    }
+
+    if (rol === 'BODEGUERO' && bodegaIds && bodegaIds.length > 0) {
+      where.bodegaId = In(bodegaIds);
+      where.estado = In([RequirementStatus.APROBADO, RequirementStatus.PARCIALMENTE_ATENDIDO]);
     }
 
     return await this.reqRepository.find({

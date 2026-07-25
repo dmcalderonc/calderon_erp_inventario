@@ -6,6 +6,7 @@ import { RequirementDetail, ItemStatus } from '../requirements/entities/requirem
 import { Requirement } from '../requirements/entities/requirement.entity';
 import { OrdenCompra } from '../compras/entities/orden-compra.entity';
 import { DetalleOrdenCompra } from '../compras/entities/detalle-orden-compra.entity';
+import { SolicitudCompra, EstadoSolicitud } from '../solicitudes-compra/entities/solicitud-compra.entity';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
@@ -23,6 +24,8 @@ export class CotizacionesService {
     private readonly ocRepository: Repository<OrdenCompra>,
     @InjectRepository(DetalleOrdenCompra)
     private readonly detalleOcRepository: Repository<DetalleOrdenCompra>,
+    @InjectRepository(SolicitudCompra)
+    private readonly solicitudRepository: Repository<SolicitudCompra>,
     private readonly dataSource: DataSource,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -105,10 +108,21 @@ export class CotizacionesService {
       marca: dto.marca || null,
       observaciones: dto.observaciones || null,
       archivoRespaldoUrl: dto.archivoRespaldoUrl || null,
+      solicitudCompraId: dto.solicitudCompraId || null,
       estado: EstadoCotizacion.EN_EVALUACION,
     });
 
-    return await this.cotizacionRepository.save(nueva) as Cotizacion;
+    const cotizacionGuardada = await this.cotizacionRepository.save(nueva) as Cotizacion;
+
+    if (dto.solicitudCompraId) {
+      const solicitud = await this.solicitudRepository.findOneBy({ id: dto.solicitudCompraId });
+      if (solicitud && solicitud.estado === EstadoSolicitud.PENDIENTE) {
+        solicitud.estado = EstadoSolicitud.COTIZANDO;
+        await this.solicitudRepository.save(solicitud);
+      }
+    }
+
+    return cotizacionGuardada;
   }
 
   async update(id: number, dto: any): Promise<Cotizacion> {

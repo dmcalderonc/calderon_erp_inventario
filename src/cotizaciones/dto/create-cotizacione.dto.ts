@@ -31,4 +31,8 @@ export class CreateCotizacioneDto {
   @IsOptional()
   @IsString()
   archivoRespaldoUrl?: string;
+
+  @IsOptional()
+  @IsNumber()
+  solicitudCompraId?: number;
 }

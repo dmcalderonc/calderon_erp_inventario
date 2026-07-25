@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Proveedor } from '../../proveedores/proveedore.entity';
 import { RequirementDetail } from '../../requirements/entities/requirement-detail.entity';
+import { SolicitudCompra } from '../../solicitudes-compra/entities/solicitud-compra.entity';
 
 export enum EstadoCotizacion {
     ELEGIDA = 'ELEGIDA',
@@ -47,4 +48,11 @@ export class Cotizacion {
 
     @Column({ type: 'enum', enum: EstadoCotizacion, default: EstadoCotizacion.EN_EVALUACION })
     estado: EstadoCotizacion;
+
+    @Column({ name: 'solicitud_compra_id', type: 'integer', nullable: true })
+    solicitudCompraId: number | null;
+
+    @ManyToOne(() => SolicitudCompra, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'solicitud_compra_id' })
+    solicitudCompra: SolicitudCompra;
 }

@@ -97,7 +97,7 @@ export class SolicitudesCompraService {
   async findOne(id: number): Promise<SolicitudCompra> {
     const solicitud = await this.solicitudRepository.findOne({
       where: { id },
-      relations: { detalles: true, proyecto: true, usuarioSolicitante: true },
+      relations: { detalles: true, proyecto: true, usuarioSolicitante: true, cotizaciones: { proveedor: true } },
     });
     if (!solicitud) {
       throw new NotFoundException(`Solicitud #${id} no encontrada`);
