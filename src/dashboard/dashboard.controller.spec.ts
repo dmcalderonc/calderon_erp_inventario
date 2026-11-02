@@ -39,17 +39,25 @@ describe('DashboardController', () => {
   });
 
   describe('getAlertasStock', () => {
-    it('debe retornar alertas de stock con umbral por defecto', async () => {
+    it('debe retornar alertas de stock con umbral por defecto sin acotar bodegas', async () => {
       const resultado = [{ material: 'Tubo', stock: 2 }];
       mockDashboardService.obtenerAlertasStock.mockResolvedValue(resultado);
 
       expect(await controller.getAlertasStock()).toEqual(resultado);
-      expect(mockDashboardService.obtenerAlertasStock).toHaveBeenCalledWith(10);
+      expect(mockDashboardService.obtenerAlertasStock).toHaveBeenCalledWith(10, null);
     });
 
     it('debe retornar alertas con umbral personalizado', async () => {
       await controller.getAlertasStock('5');
-      expect(mockDashboardService.obtenerAlertasStock).toHaveBeenCalledWith(5);
+      expect(mockDashboardService.obtenerAlertasStock).toHaveBeenCalledWith(5, null);
+    });
+
+    it('acota las alertas a las bodegas asignadas del BODEGUERO', async () => {
+      await controller.getAlertasStock(undefined, {
+        user: { id: 'u1', email: 'b@t.com', rol: 'BODEGUERO', bodegaIds: [2, 5] },
+      });
+
+      expect(mockDashboardService.obtenerAlertasStock).toHaveBeenCalledWith(10, [2, 5]);
     });
   });
 

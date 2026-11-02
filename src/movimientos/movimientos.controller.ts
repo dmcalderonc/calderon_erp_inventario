@@ -17,6 +17,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { PdfService } from '../pdf/pdf.service';
 import { JwtPayload } from '../auth/jwt.strategy';
+import { bodegasVisiblesPorUsuario } from '../common/utils/bodega-scope';
 
 @Controller('movimientos')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,14 +35,23 @@ export class MovimientosController {
 
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  async findAll() {
-    return await this.movimientosService.findAll();
+  async findAll(@Req() req: { user: JwtPayload }) {
+    const visibles = bodegasVisiblesPorUsuario(req.user.rol, req.user.bodegaIds);
+    return await this.movimientosService.findAll(visibles);
+  }
+
+  @Get(':id')
+  @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
+  async findOne(@Param('id') id: string, @Req() req: { user: JwtPayload }) {
+    const visibles = bodegasVisiblesPorUsuario(req.user.rol, req.user.bodegaIds);
+    return await this.movimientosService.findOne(id, visibles);
   }
 
   @Get(':id/ticket')
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  async descargarTicketPdf(@Param('id') id: string, @Res() res: Response) {
-    const movimiento: any = await this.movimientosService.findOne(id as any);
+  async descargarTicketPdf(@Param('id') id: string, @Res() res: Response, @Req() req: { user: JwtPayload }) {
+    const visibles = bodegasVisiblesPorUsuario(req.user.rol, req.user.bodegaIds);
+    const movimiento: any = await this.movimientosService.findOne(id as any, visibles);
 
     if (!movimiento) {
       throw new NotFoundException('Movimiento no encontrado');

@@ -63,14 +63,20 @@ export class DashboardService {
     }
   }
 
-  async obtenerAlertasStock(umbral: number) {
+  async obtenerAlertasStock(umbral: number, bodegasVisibles: number[] | null = null) {
     try {
-      return await this.inventarioRepo
+      const query = this.inventarioRepo
         .createQueryBuilder('inv')
         .innerJoinAndSelect('inv.material', 'material')
         .leftJoinAndSelect('inv.bodega', 'bodega')
-        .where('inv.cantidad_disponible < :umbral', { umbral })
-        .getMany();
+        .where('inv.cantidad_disponible < :umbral', { umbral });
+
+      // Un BODEGUERO solo debe ver el bajo stock de sus bodegas asignadas.
+      if (bodegasVisibles !== null) {
+        query.andWhere('inv.bodegaId IN (:...bodegasVisibles)', { bodegasVisibles });
+      }
+
+      return await query.getMany();
     } catch (error) {
       throw new InternalServerErrorException('Error al consultar alertas de stock: ' + error.message);
     }

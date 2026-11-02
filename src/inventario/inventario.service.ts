@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Inventario } from './inventario.entity';
 import { CreateInventarioDto } from './dto/create-inventario.dto';
 import { UpdateInventarioDto } from './dto/update-inventario.dto';
 import { Material } from '../materiales/material.entity';
 import { Bodega } from '../bodegas/bodegas.entity';
 import { AuditoriaService } from '../auditoria/auditoria.service';
+import { assertBodegaVisible } from '../common/utils/bodega-scope';
 
 @Injectable()
 export class InventarioService {
@@ -22,7 +23,9 @@ export class InventarioService {
     private readonly auditoriaService: AuditoriaService,
   ) {}
 
-  async create(dto: CreateInventarioDto, usuarioId?: string) {
+  async create(dto: CreateInventarioDto, usuarioId?: string, bodegasVisibles: number[] | null = null) {
+    assertBodegaVisible(bodegasVisibles, dto.bodega_id, 'No tiene permisos para operar sobre esta bodega');
+
     const material = await this.materialRepository.findOne({
       where: { id: dto.material_id },
     });
@@ -98,13 +101,14 @@ export class InventarioService {
     return saved;
   }
 
-  async findAll() {
+  async findAll(bodegasVisibles: number[] | null = null) {
     return this.inventarioRepository.find({
+      where: bodegasVisibles === null ? {} : { bodegaId: In(bodegasVisibles) },
       relations: { material: true, bodega: true },
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, bodegasVisibles: number[] | null = null) {
     const registro = await this.inventarioRepository.findOne({
       where: { id },
       relations: { material: true, bodega: true },
@@ -112,21 +116,23 @@ export class InventarioService {
     if (!registro) {
       throw new NotFoundException(`Registro de inventario #${id} no encontrado.`);
     }
+    assertBodegaVisible(bodegasVisibles, registro.bodegaId);
     return registro;
   }
 
-  async update(id: number, dto: UpdateInventarioDto) {
-    await this.findOne(id);
+  async update(id: number, dto: UpdateInventarioDto, bodegasVisibles: number[] | null = null) {
+    await this.findOne(id, bodegasVisibles);
     await this.inventarioRepository.update(id, dto);
-    return this.findOne(id);
+    return this.findOne(id, bodegasVisibles);
   }
 
-  async remove(id: number) {
-    await this.findOne(id);
+  async remove(id: number, bodegasVisibles: number[] | null = null) {
+    await this.findOne(id, bodegasVisibles);
     await this.inventarioRepository.delete(id);
   }
 
-  async getStockByBodega(bodegaId: number) {
+  async getStockByBodega(bodegaId: number, bodegasVisibles: number[] | null = null) {
+    assertBodegaVisible(bodegasVisibles, bodegaId, 'No tiene permisos para consultar esta bodega');
     return this.inventarioRepository.find({
       where: { bodegaId: bodegaId },
       relations: { material: true },
@@ -148,9 +154,11 @@ export class InventarioService {
     });
   }
 
-  async getStockByBodegas(materialId: number) {
+  async getStockByBodegas(materialId: number, bodegasVisibles: number[] | null = null) {
     const registros = await this.inventarioRepository.find({
-      where: { materialId },
+      where: bodegasVisibles === null
+        ? { materialId }
+        : { materialId, bodegaId: In(bodegasVisibles) },
       relations: { bodega: true },
     });
     return registros.map(r => ({

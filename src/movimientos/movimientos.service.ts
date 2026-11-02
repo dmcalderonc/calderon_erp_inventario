@@ -1,12 +1,13 @@
 import {
   Injectable,
   BadRequestException,
+  ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, FindOptionsWhere, In } from 'typeorm';
 import { CreateMovimientoDto } from './dto/create-movimiento.dto';
 import {
   MovimientoInventario,
@@ -181,14 +182,23 @@ export class MovimientosService {
     }
   }
 
-  async findAll() {
+  async findAll(bodegasVisibles: number[] | null = null) {
+    const where: FindOptionsWhere<MovimientoInventario>[] | Record<string, never> =
+      bodegasVisibles === null
+        ? {}
+        : [
+            { bodegaOrigenId: In(bodegasVisibles) },
+            { bodegaDestinoId: In(bodegasVisibles) },
+          ];
+
     return await this.movRepository.find({
+      where,
       order: { fecha: 'DESC' },
       relations: { bodegaOrigen: true, bodegaDestino: true },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, bodegasVisibles: number[] | null = null) {
     const mov = await this.movRepository.findOne({
       where: { id },
       relations: { detalles: { material: true } },
@@ -197,6 +207,15 @@ export class MovimientosService {
     if (!mov) {
       throw new NotFoundException(`Movimiento ${id} no encontrado`);
     }
+
+    if (bodegasVisibles !== null) {
+      const tocaOrigen = mov.bodegaOrigenId != null && bodegasVisibles.includes(mov.bodegaOrigenId);
+      const tocaDestino = mov.bodegaDestinoId != null && bodegasVisibles.includes(mov.bodegaDestinoId);
+      if (!tocaOrigen && !tocaDestino) {
+        throw new ForbiddenException('No tiene permisos para consultar este movimiento');
+      }
+    }
+
     return mov;
   }
 }

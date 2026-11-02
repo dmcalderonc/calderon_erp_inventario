@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Notification, NotificationDocument } from './schemas/notification.schema';
@@ -68,8 +68,20 @@ export class NotificationsService {
     return this.notificationModel.countDocuments(filter).exec();
   }
 
-  async markAsRead(id: string) {
-    return this.notificationModel.findByIdAndUpdate(id, { leida: true }).exec();
+  async markAsRead(id: string, rol?: string, usuarioId?: string) {
+    // Solo se puede marcar como leída una notificación propia o de su rol (evita IDOR).
+    const filter: any = { _id: id };
+    if (usuarioId) {
+      filter.$or = [{ usuarioId }, { rolDestino: rol }];
+    } else if (rol) {
+      filter.rolDestino = rol;
+    }
+
+    const actualizada = await this.notificationModel.findOneAndUpdate(filter, { leida: true }).exec();
+    if (!actualizada) {
+      throw new NotFoundException(`Notificación ${id} no encontrada`);
+    }
+    return actualizada;
   }
 
   async markAllAsRead(rol?: string, usuarioId?: string) {
@@ -83,5 +95,18 @@ export class NotificationsService {
       filter.rolDestino = rol;
     }
     return this.notificationModel.updateMany(filter, { leida: true }).exec();
+  }
+
+  /** Anti-spam: ¿ya existe una notificación sin leer para esta entidad en las últimas `horas`? */
+  async existeNoLeidaReciente(
+    tipo: string,
+    entidadId: string,
+    horas: number = 24,
+  ): Promise<boolean> {
+    const desde = new Date(Date.now() - horas * 3600 * 1000);
+    const existe = await this.notificationModel
+      .exists({ tipo, entidadId, leida: false, createdAt: { $gte: desde } })
+      .exec();
+    return Boolean(existe);
   }
 }

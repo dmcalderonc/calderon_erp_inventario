@@ -32,16 +32,8 @@ export class MaterialesController {
 
   @Get()
   @Roles('ADMIN', 'BODEGUERO', 'COMPRADOR', 'SOLICITANTE')
-  async findAll(
-    @Query() paginationDto: PaginationDto,
-    @Query('categoriaId') categoriaId?: string,
-    @Query('bodegaId') bodegaId?: string,
-  ) {
-    return this.materialesService.findAll(
-      paginationDto,
-      categoriaId ? +categoriaId : undefined,
-      bodegaId ? +bodegaId : undefined,
-    );
+  async findAll(@Query() paginationDto: PaginationDto) {
+    return this.materialesService.findAll(paginationDto);
   }
 
   @Get(':id')

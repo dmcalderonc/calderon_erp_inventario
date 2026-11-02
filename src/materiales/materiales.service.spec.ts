@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MaterialesService } from './materiales.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Material } from './material.entity';
+import { UnidadMedida } from '../unidades-medida/unidad-medida.entity';
 import { DataSource } from 'typeorm';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
@@ -24,8 +25,29 @@ describe('MaterialesService', () => {
     manager: mockManager,
   };
 
+  // Constructor en cadena de un QueryBuilder falso: sirve tanto para
+  // MaterialesService.findAll como para los agregados de stock.
+  const newQueryBuilder = (data: any[] = [], total = 0) => ({
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
+    leftJoin: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    from: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    groupBy: jest.fn().mockReturnThis(),
+    getRawMany: jest.fn().mockResolvedValue([]),
+    getRawOne: jest.fn().mockResolvedValue({ count: '0' }),
+    getManyAndCount: jest.fn().mockResolvedValue([data, total]),
+  });
+
   const mockDataSource = {
     createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
+    createQueryBuilder: jest.fn().mockReturnValue(newQueryBuilder()),
   };
 
   const mockMaterialRepository = {
@@ -48,6 +70,7 @@ describe('MaterialesService', () => {
           provide: getRepositoryToken(Material),
           useValue: mockMaterialRepository,
         },
+        { provide: getRepositoryToken(UnidadMedida), useValue: {} },
         { provide: DataSource, useValue: mockDataSource },
         { provide: AuditoriaService, useValue: mockAuditoriaService },
       ],
@@ -73,6 +96,7 @@ describe('MaterialesService', () => {
 
     it('debe crear un material con SKU inicial si no hay materiales previos', async () => {
       mockManager.findOne.mockResolvedValueOnce(categoriaMock);
+      mockManager.findOne.mockResolvedValueOnce({ id: 1, nombre: 'Unidad' });
       mockManager.findOne.mockResolvedValueOnce(null);
 
       const nuevoMaterial = { nombre: 'Tubo', sku: 'VID-0001' };
@@ -89,6 +113,7 @@ describe('MaterialesService', () => {
 
     it('debe crear un material incrementando el SKU del último registro', async () => {
       mockManager.findOne.mockResolvedValueOnce(categoriaMock);
+      mockManager.findOne.mockResolvedValueOnce({ id: 1, nombre: 'Unidad' });
       mockManager.findOne.mockResolvedValueOnce({ sku: 'VID-0015' });
 
       const nuevoMaterial = { nombre: 'Tubo', sku: 'VID-0016' };
@@ -112,17 +137,75 @@ describe('MaterialesService', () => {
   });
 
   describe('findAll', () => {
-    it('debe retornar un arreglo de materiales con sus categorías', async () => {
-      const materiales = [
-        { id: 1, nombre: 'Tubo', categoria: { id: 1, nombre: 'Vidrio' } },
-      ];
-      mockMaterialRepository.find.mockResolvedValue(materiales);
+    let qb: any;
+    let originalCreateQueryBuilder: any;
 
-      const resultado = await service.findAll();
-      expect(resultado).toEqual(materiales);
-      expect(mockMaterialRepository.find).toHaveBeenCalledWith({
-        relations: { categoria: true },
-      });
+    beforeEach(() => {
+      originalCreateQueryBuilder = mockDataSource.createQueryBuilder;
+      qb = newQueryBuilder();
+      mockMaterialRepository.createQueryBuilder = jest.fn().mockReturnValue(qb);
+      mockDataSource.createQueryBuilder = jest.fn().mockReturnValue(qb);
+    });
+
+    afterEach(() => {
+      mockDataSource.createQueryBuilder = originalCreateQueryBuilder;
+    });
+
+    it('devuelve la página solicitada y la meta de paginación', async () => {
+      qb.getManyAndCount.mockResolvedValue([[{ id: 1, nombre: 'Tubo' }], 41]);
+
+      const resultado = await service.findAll({ page: 2, limit: 10 });
+
+      expect(resultado.meta).toEqual({ total: 41, page: 2, limit: 10, totalPages: 5 });
+      expect(qb.skip).toHaveBeenCalledWith(10);
+      expect(qb.take).toHaveBeenCalledWith(10);
+    });
+
+    it('aplica el filtro de categoría y de bodega en la consulta', async () => {
+      await service.findAll({ categoriaId: 3, bodegaId: 2 });
+
+      expect(qb.andWhere).toHaveBeenCalledWith('categoria.id = :categoriaId', { categoriaId: 3 });
+      expect(qb.innerJoin).toHaveBeenCalledWith(
+        'stock_bodega',
+        'sb',
+        'sb.material_id = material.id AND sb.bodega_id = :bodegaId',
+        { bodegaId: 2 },
+      );
+    });
+
+    const casosStock: { stock: 'agotado' | 'bajo' | 'normal'; condicion: string }[] = [
+      { stock: 'agotado', condicion: 'COALESCE(stock_agg.disponible, 0) = 0' },
+      { stock: 'bajo', condicion: 'COALESCE(stock_agg.disponible, 0) > 0 AND COALESCE(stock_agg.disponible, 0) <= 5' },
+      { stock: 'normal', condicion: 'COALESCE(stock_agg.disponible, 0) > 5' },
+    ];
+
+    it.each(casosStock)('filtra stock="$stock" dentro de la base de datos', async ({ stock, condicion }) => {
+      await service.findAll({ stock });
+
+      expect(qb.leftJoin).toHaveBeenCalledWith(
+        expect.stringContaining('FROM stock_bodega sb_agg'),
+        'stock_agg',
+        'stock_agg.material_id = material.id',
+      );
+      expect(qb.andWhere).toHaveBeenCalledWith(condicion, {});
+    });
+
+    it('acota el agregado de stock a la bodega seleccionada', async () => {
+      qb.getManyAndCount.mockResolvedValue([[{ id: 1, nombre: 'Tubo' }], 1]);
+
+      await service.findAll({ bodegaId: 7, stock: 'agotado' });
+
+      expect(qb.leftJoin.mock.calls[0][0]).toContain('WHERE sb_agg.bodega_id = :stockBodegaId');
+      expect(qb.andWhere).toHaveBeenCalledWith('COALESCE(stock_agg.disponible, 0) = 0', { stockBodegaId: 7 });
+      // Los totales mostrados también deben respetar el alcance de la bodega.
+      expect(qb.andWhere).toHaveBeenCalledWith('sb.bodega_id = :stockScopeBodegaId', { stockScopeBodegaId: 7 });
+    });
+
+    it('no añade joins de filtro cuando no se envían parámetros', async () => {
+      await service.findAll({});
+
+      expect(qb.leftJoin).not.toHaveBeenCalled();
+      expect(qb.innerJoin).not.toHaveBeenCalled();
     });
   });
 

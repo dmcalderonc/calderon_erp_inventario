@@ -101,8 +101,8 @@ export class MaterialesService {
     }
   }
 
-  async findAll(paginationDto: PaginationDto, categoriaId?: number, bodegaId?: number) {
-    const { page = 1, limit = 10, search } = paginationDto;
+  async findAll(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10, search, categoriaId, bodegaId, stock } = paginationDto;
     const skip = (page - 1) * limit;
 
     const query = this.materialRepository.createQueryBuilder('material')
@@ -126,6 +126,32 @@ export class MaterialesService {
       query.innerJoin('stock_bodega', 'sb', 'sb.material_id = material.id AND sb.bodega_id = :bodegaId', { bodegaId });
     }
 
+    if (stock) {
+      // LEFT JOIN al agregado de stock para incluir materiales sin registros (0 unidades).
+      const stockParams: Record<string, number> = {};
+      let stockScope = '';
+      if (bodegaId) {
+        stockScope = 'WHERE sb_agg.bodega_id = :stockBodegaId';
+        stockParams.stockBodegaId = bodegaId;
+      }
+
+      let stockCondition: string;
+      if (stock === 'agotado') {
+        stockCondition = 'COALESCE(stock_agg.disponible, 0) = 0';
+      } else if (stock === 'bajo') {
+        stockCondition = 'COALESCE(stock_agg.disponible, 0) > 0 AND COALESCE(stock_agg.disponible, 0) <= 5';
+      } else {
+        stockCondition = 'COALESCE(stock_agg.disponible, 0) > 5';
+      }
+
+      query.leftJoin(
+        `(SELECT sb_agg.material_id AS material_id, SUM(sb_agg.cantidad_disponible) AS disponible FROM stock_bodega sb_agg ${stockScope} GROUP BY sb_agg.material_id)`,
+        'stock_agg',
+        'stock_agg.material_id = material.id',
+      );
+      query.andWhere(stockCondition, stockParams);
+    }
+
     query.orderBy('material.id', 'DESC');
 
     const [data, total] = await query
@@ -138,21 +164,27 @@ export class MaterialesService {
     let stockMap: Record<number, { disponible: number; reservada: number }> = {};
     let bodegaStockMap: Record<number, { bodegaId: number; bodegaNombre: string; disponible: number; reservada: number }[]> = {};
     if (materialIds.length > 0) {
-      const stockRows = await this.dataSource
+      const stockQuery = this.dataSource
         .createQueryBuilder()
         .select('material_id', 'materialId')
         .addSelect('COALESCE(SUM(cantidad_disponible), 0)', 'disponible')
         .addSelect('COALESCE(SUM(cantidad_reservada), 0)', 'reservada')
         .from('stock_bodega', 'sb')
         .where('sb.material_id IN (:...ids)', { ids: materialIds })
-        .groupBy('sb.material_id')
-        .getRawMany();
+        .groupBy('sb.material_id');
+
+      // Los totales deben respetar el filtro de bodega.
+      if (bodegaId) {
+        stockQuery.andWhere('sb.bodega_id = :stockScopeBodegaId', { stockScopeBodegaId: bodegaId });
+      }
+
+      const stockRows = await stockQuery.getRawMany();
 
       stockMap = Object.fromEntries(
         stockRows.map((r: any) => [r.materialId, { disponible: Number(r.disponible), reservada: Number(r.reservada) }])
       );
 
-      const bodegaRows = await this.dataSource
+      const bodegaQuery = this.dataSource
         .createQueryBuilder()
         .select('sb.material_id', 'materialId')
         .addSelect('sb.bodega_id', 'bodegaId')
@@ -161,8 +193,13 @@ export class MaterialesService {
         .addSelect('COALESCE(sb.cantidad_reservada, 0)', 'reservada')
         .from('stock_bodega', 'sb')
         .innerJoin('bodegas', 'b', 'b.id = sb.bodega_id')
-        .where('sb.material_id IN (:...ids)', { ids: materialIds })
-        .getRawMany();
+        .where('sb.material_id IN (:...ids)', { ids: materialIds });
+
+      if (bodegaId) {
+        bodegaQuery.andWhere('sb.bodega_id = :stockBodegaDetailId', { stockBodegaDetailId: bodegaId });
+      }
+
+      const bodegaRows = await bodegaQuery.getRawMany();
 
       bodegaStockMap = materialIds.reduce((acc, id) => ({ ...acc, [id]: [] }), {} as Record<number, any[]>);
       for (const row of bodegaRows) {
